@@ -5,8 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, target-densitydpi=device-dpi">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
+    <!-- Permissões de rede e mídia via CSP -->
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; media-src * blob: data:; connect-src *; worker-src * blob:;">
     <title>UniTV · IPTV Player</title>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <!-- Manifesto PWA inline (permite acesso à internet como app) -->
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIlVuaVRWIElQVFYgUGxheWVyIiwKICAic2hvcnRfbmFtZSI6ICJVbmlUViIsCiAgInN0YXJ0X3VybCI6ICIuLyIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzBiMGIxMCIsCiAgInRoZW1lX2NvbG9yIjogIiNlNTA5MTQiLAogICJzY29wZSI6ICIuLyIsCiAgImljb25zIjogWwogICAgewogICAgICAic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbCwlM0Nzdmcgdmlld0JveD0nMCAwIDI0IDI0JyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnJTNlJTNjcGF0aCBmaWxsPSdyZWQnIGQ9J00xMiAyTDE1LjA5IDguMjZMMjIgOS4yN0wxNyAxNC4xNEwxOC4xOCAyMS4wMkwxMiAxNy43N0w1LjgyIDIxLjAyTDcgMTQuMTRMMiA5LjI3TDguOTEgOC4yNkwxMiAyeicvJTNlJTNjL3N2ZyUzZSIsCiAgICAgICJzaXplcyI6ICIxOTJ4MTkyIiwKICAgICAgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIKICAgIH0KICBdCn0=">
+    <!-- Shaka Player (CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.7.0/shaka-player.compiled.min.js"></script>
     <style>
         :root {
             --bg: #0b0b10;
@@ -540,7 +545,8 @@
             let allSeriesList = [];
             let seriesCategories = [];
             let currentSeriesData = null;
-            let currentHls = null;
+            // Shaka Player instance
+            let player = null;
             let currentPlayingUrl = null;
             let currentPlayingLogo = '';
             let controlsTimeout = null;
@@ -626,10 +632,10 @@
             function initMediaSession() {
                 if (!('mediaSession' in navigator)) return;
                 mediaSessionInitialized = true;
-                navigator.mediaSession.setActionHandler('play', () => { if (videoPlayer.paused) videoPlayer.play().catch(()=>{}); });
-                navigator.mediaSession.setActionHandler('pause', () => { if (!videoPlayer.paused) videoPlayer.pause(); });
-                navigator.mediaSession.setActionHandler('previoustrack', () => { videoPlayer.currentTime = Math.max(0, videoPlayer.currentTime - 10); });
-                navigator.mediaSession.setActionHandler('nexttrack', () => { videoPlayer.currentTime = Math.min(videoPlayer.duration || Infinity, videoPlayer.currentTime + 10); });
+                navigator.mediaSession.setActionHandler('play', () => videoPlayer.play().catch(()=>{}));
+                navigator.mediaSession.setActionHandler('pause', () => videoPlayer.pause());
+                navigator.mediaSession.setActionHandler('previoustrack', () => videoPlayer.currentTime = Math.max(0, videoPlayer.currentTime - 10));
+                navigator.mediaSession.setActionHandler('nexttrack', () => videoPlayer.currentTime = Math.min(videoPlayer.duration || Infinity, videoPlayer.currentTime + 10));
                 navigator.mediaSession.setActionHandler('seekto', (details) => { if (details.seekTime !== undefined) videoPlayer.currentTime = details.seekTime; });
             }
             function updateMediaSession(title, logoUrl) {
@@ -653,11 +659,15 @@
                 localStorage.setItem(RESUME_KEY, JSON.stringify(resumeData));
             }
 
-            const destroyHls = () => {
+            // Destroi Shaka Player e limpa estado de reprodução
+            const destroyShaka = () => {
                 if (currentPlayingUrl && (currentMode === 'movies' || currentMode === 'series') && !isLiveStream && videoPlayer.currentTime > 0) {
                     saveResumePosition(currentPlayingUrl, videoPlayer.currentTime);
                 }
-                if (currentHls) { currentHls.destroy(); currentHls = null; }
+                if (player) {
+                    player.destroy();
+                    player = null;
+                }
                 videoPlayer.pause();
                 videoPlayer.removeAttribute('src');
                 videoPlayer.load();
@@ -894,40 +904,13 @@
             document.addEventListener('keydown', (e) => {
                 if (e.target.tagName === 'INPUT' && e.target.type === 'range') return;
                 
-                // Botão Voltar (Android TV: keyCode 4 ou Escape/Backspace)
                 if (e.key === 'GoBack' || e.key === 'Back' || e.keyCode === 4 || e.code === 'Escape' || e.code === 'Backspace') {
-                    if (isFullscreen) {
-                        exitFullscreen();
-                        e.preventDefault();
-                        return;
-                    }
-                    if (historyPopup.classList.contains('show')) {
-                        closeHistoryPopup();
-                        e.preventDefault();
-                        return;
-                    }
-                    if (searchSuggestions.classList.contains('show')) {
-                        searchSuggestions.classList.remove('show');
-                        e.preventDefault();
-                        return;
-                    }
-                    if (!subcatPanel.classList.contains('hidden')) {
-                        subcatPanel.classList.add('hidden');
-                        activeCategoryId = null;
-                        renderCategories(currentMode==='live'?liveCategories:currentMode==='movies'?movieCategories:seriesCategories);
-                        e.preventDefault();
-                        return;
-                    }
-                    if (mainInterface.style.display === 'block') {
-                        showServerSelection();
-                        e.preventDefault();
-                        return;
-                    }
-                    if (contentTypeScreen.style.display === 'flex') {
-                        showServerSelection();
-                        e.preventDefault();
-                        return;
-                    }
+                    if (isFullscreen) { exitFullscreen(); e.preventDefault(); return; }
+                    if (historyPopup.classList.contains('show')) { closeHistoryPopup(); e.preventDefault(); return; }
+                    if (searchSuggestions.classList.contains('show')) { searchSuggestions.classList.remove('show'); e.preventDefault(); return; }
+                    if (!subcatPanel.classList.contains('hidden')) { subcatPanel.classList.add('hidden'); activeCategoryId = null; renderCategories(currentMode==='live'?liveCategories:currentMode==='movies'?movieCategories:seriesCategories); e.preventDefault(); return; }
+                    if (mainInterface.style.display === 'block') { showServerSelection(); e.preventDefault(); return; }
+                    if (contentTypeScreen.style.display === 'flex') { showServerSelection(); e.preventDefault(); return; }
                 }
                 
                 switch(e.code) {
@@ -966,37 +949,77 @@
             });
             resumeNo.addEventListener('keydown', (e) => { if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); resumeNo.click(); } });
 
+            // ========== PLAYBACK COM SHAKA PLAYER ==========
             function startPlayback(url, title, logoUrl, seekTime) {
-                destroyHls();
+                destroyShaka(); // destrói qualquer instância anterior
                 setLoading(true); showPlaceholder(false);
                 currentPlayingLogo = logoUrl || '';
                 setNowPlaying(title, '🟡 Conectando...', logoUrl);
                 isLiveStream = true; timeDisplay.textContent = '--:-- / --:--'; showControlsTemporarily();
                 progressContainer.style.display = 'none';
-                const errHandler = () => { setNowPlaying(title, '🔴 Falha', logoUrl); setLoading(false); showPlaceholder(true); destroyHls(); };
-                if (url.includes('.m3u8') && Hls.isSupported()) {
-                    const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
-                    hls.loadSource(url); hls.attachMedia(videoPlayer);
-                    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                        setLoading(false); setNowPlaying(title, '🟢 Reproduzindo', logoUrl);
-                        if (seekTime > 0) videoPlayer.currentTime = seekTime;
-                        videoPlayer.play().catch(()=>{}); updateBigPlayBtn(); updatePlayPauseIcons();
-                    });
-                    hls.on(Hls.Events.ERROR, (_, data) => { if (data.fatal) errHandler(); });
-                    currentHls = hls;
+                currentPlayingUrl = url;
+
+                // Função de erro genérica
+                const errHandler = () => {
+                    setNowPlaying(title, '🔴 Falha', logoUrl);
+                    setLoading(false); showPlaceholder(true);
+                    destroyShaka();
+                };
+
+                // Se for stream adaptativo (HLS/DASH), usa Shaka Player
+                if (url.match(/\.m3u8($|\?)/i) || url.match(/\.mpd($|\?)/i) || url.includes('/master.m3u8') || url.includes('/manifest.mpd')) {
+                    try {
+                        player = new shaka.Player(videoPlayer);
+                        // Configura o player para DRM e codecs de forma automática
+                        player.configure({
+                            streaming: {
+                                bufferingGoal: 60,
+                                rebufferingGoal: 15,
+                                useNativeHlsOnSafari: true,
+                                // Permite que o Shaka escolha o melhor codec disponível
+                                alwaysStreamText: false
+                            },
+                            drm: {
+                                // Servidores Widevine e PlayReady são configurados automaticamente se a licença fornecida pelo manifesto
+                                servers: {}
+                            }
+                        });
+
+                        // Escuta erros
+                        player.addEventListener('error', (event) => {
+                            console.error('Shaka Error', event.detail);
+                            errHandler();
+                        });
+
+                        // Carrega o manifesto
+                        player.load(url, seekTime).then(() => {
+                            console.log('Shaka loaded successfully');
+                            setLoading(false);
+                            setNowPlaying(title, '🟢 Reproduzindo', logoUrl);
+                            videoPlayer.play().catch(()=>{});
+                            updateBigPlayBtn(); updatePlayPauseIcons();
+                        }).catch(errHandler);
+
+                    } catch (e) {
+                        console.error('Shaka init error', e);
+                        errHandler();
+                    }
                 } else {
+                    // Stream simples (MP4, etc.) usa o elemento video nativo
                     videoPlayer.src = url;
                     videoPlayer.addEventListener('loadedmetadata', () => {
-                        setLoading(false); setNowPlaying(title, '🟢 Reproduzindo', logoUrl);
+                        setLoading(false);
+                        setNowPlaying(title, '🟢 Reproduzindo', logoUrl);
                         if (seekTime > 0) videoPlayer.currentTime = seekTime;
-                        videoPlayer.play().catch(()=>{}); updateBigPlayBtn(); updatePlayPauseIcons();
+                        videoPlayer.play().catch(()=>{});
+                        updateBigPlayBtn(); updatePlayPauseIcons();
                     }, { once: true });
                     videoPlayer.addEventListener('error', errHandler, { once: true });
                 }
-                currentPlayingUrl = url; updateMuteIcon();
+                updateMuteIcon();
             }
 
-            // ========== PLAYSTREAM ==========
+            // ========== PLAYSTREAM (interface com retomada) ==========
             function playStream(url, title, logoUrl) {
                 if (currentPlayingUrl === url && !videoPlayer.paused) return;
                 if (currentPlayingUrl && (currentMode === 'movies' || currentMode === 'series') && !isLiveStream && videoPlayer.currentTime > 0) {
@@ -1005,25 +1028,15 @@
                 if (currentMode !== 'live') {
                     const savedTime = resumeData[url];
                     if (savedTime && savedTime > 0) {
-                        destroyHls();
+                        // Prepara ambiente e mostra popup de retomada
+                        destroyShaka();
                         setLoading(true); showPlaceholder(false);
                         currentPlayingLogo = logoUrl || '';
                         setNowPlaying(title, '🟡 Conectando...', logoUrl);
                         isLiveStream = true; timeDisplay.textContent = '--:-- / --:--';
                         progressContainer.style.display = 'none';
-                        const errHandler = () => { setNowPlaying(title, '🔴 Falha', logoUrl); setLoading(false); showPlaceholder(true); destroyHls(); };
-                        if (url.includes('.m3u8') && Hls.isSupported()) {
-                            const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
-                            hls.loadSource(url); hls.attachMedia(videoPlayer);
-                            hls.on(Hls.Events.MANIFEST_PARSED, () => setLoading(false));
-                            hls.on(Hls.Events.ERROR, (_, data) => { if (data.fatal) errHandler(); });
-                            currentHls = hls;
-                        } else {
-                            videoPlayer.src = url;
-                            videoPlayer.addEventListener('loadedmetadata', () => setLoading(false), { once: true });
-                            videoPlayer.addEventListener('error', errHandler, { once: true });
-                        }
-                        currentPlayingUrl = url; updateMuteIcon();
+                        currentPlayingUrl = url;
+                        updateMuteIcon();
                         pendingResume = { url, title, logoUrl, savedTime };
                         resumeOverlay.classList.add('show');
                         setTimeout(() => {
@@ -1109,7 +1122,7 @@
                 const targetBtn = mainNav.querySelector(`[data-mode="${mode}"]`); if (targetBtn) targetBtn.classList.add('active');
                 activeCategoryId = null; subcatPanel.classList.add('hidden'); currentSeriesData = null;
                 allLiveChannels = []; liveCategories = []; allMovies = []; movieCategories = []; allSeriesList = []; seriesCategories = [];
-                destroyHls(); showPlaceholder(true); setNowPlaying('Nenhum conteúdo', '● PARADO', '');
+                destroyShaka(); showPlaceholder(true); setNowPlaying('Nenhum conteúdo', '● PARADO', '');
                 updateSearchVisibility(); loadModeData();
                 if (window.innerWidth <= 780) { sidebar.classList.remove('open'); overlay.classList.remove('active'); }
             }
@@ -1303,7 +1316,7 @@
             function selectServer(srv) {
                 currentServer = srv;
                 serverScreen.style.display = 'none'; contentTypeScreen.style.display = 'flex'; mainInterface.style.display = 'none';
-                currentMode = null; activeCategoryId = null; destroyHls(); showPlaceholder(true); setNowPlaying('Nenhum conteúdo', '● PARADO', '');
+                currentMode = null; activeCategoryId = null; destroyShaka(); showPlaceholder(true); setNowPlaying('Nenhum conteúdo', '● PARADO', '');
                 subcatPanel.classList.add('hidden');
                 setTimeout(() => {
                     const firstTypeCard = contentTypeScreen.querySelector('.type-card');
@@ -1311,7 +1324,7 @@
                 }, 100);
             }
             function showServerSelection() {
-                destroyHls(); exitFullscreen().catch(()=>{});
+                destroyShaka(); exitFullscreen().catch(()=>{});
                 contentTypeScreen.style.display = 'none'; mainInterface.style.display = 'none'; serverScreen.style.display = 'flex';
                 currentServer = null; customServers = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]'); buildServerList();
                 customServerForm.style.display = 'none'; showPlaceholder(true); setNowPlaying('Nenhum conteúdo','● PARADO','');
@@ -1355,4 +1368,4 @@
         })();
     </script>
 </body>
-</html>
+                    </html>
