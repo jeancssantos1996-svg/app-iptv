@@ -1,1311 +1,1365 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, target-densitydpi=device-dpi">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; media-src * blob: data:; connect-src *; worker-src * blob:;">
-    <title>UniTV · IPTV Player</title>
-    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIlVuaVRWIElQVFYgUGxheWVyIiwKICAic2hvcnRfbmFtZSI6ICJVbmlUViIsCiAgInN0YXJ0X3VybCI6ICIuLyIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzBiMGIxMCIsCiAgInRoZW1lX2NvbG9yIjogIiNlNTA5MTQiLAogICJzY29wZSI6ICIuLyIsCiAgImljb25zIjogWwogICAgewogICAgICAic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbCwlM0Nzdmcgdmlld0JveD0nMCAwIDI0IDI0JyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnJTNlJTNjcGF0aCBmaWxsPSdyZWQnIGQ9J00xMiAyTDE1LjA5IDguMjZMMjIgOS4yN0wxNyAxNC4xNEwxOC4xOCAyMS4wMkwxMiAxNy43N0w1LjgyIDIxLjAyTDcgMTQuMTRMMiA5LjI3TDguOTEgOC4yNkwxMiAyeicvJTNlJTNjL3N2ZyUzZSIsCiAgICAgICJzaXplcyI6ICIxOTJ4MTkyIiwKICAgICAgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIKICAgIH0KICBdCn0=">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.7.0/shaka-player.compiled.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Claro TV+ · Central de Contas</title>
     <style>
-        :root {
-            --bg: #0b0b10;
-            --surface: rgba(16, 16, 26, 0.97);
-            --accent: #e50914;
-            --text: #ededed;
-            --text-secondary: #aaa;
-            --radius: 18px;
-            --transition: 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-            --focus-outline: 3px solid #e50914;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', 'Roboto', 'Inter', sans-serif;
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: 'Inter', 'Roboto', system-ui, -apple-system, 'Segoe UI', Helvetica, sans-serif;
-            background: #000;
-            color: var(--text);
-            height: 100vh; height: 100dvh;
-            overflow: hidden;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-            -webkit-font-smoothing: antialiased;
-            -webkit-user-select: none;
+            background: radial-gradient(circle at 10% 20%, #0b1423, #030617);
+            min-height: 100vh;
+            padding: 1.2rem 1rem 2rem;
         }
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(229, 9, 20, 0.45); border-radius: 10px; }
 
-        #serverSelectionScreen {
-            position: fixed; inset: 0;
-            background: radial-gradient(ellipse at 30% 30%, #0f0f1a, #020203);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 100; padding: 1.5rem;
+        .app-container {
+            max-width: 580px;
+            margin: 0 auto;
         }
-        #serverSelectionScreen h1 {
-            font-size: 2.4rem; font-weight: 800;
-            background: linear-gradient(135deg, #ff3b4a, #e50914, #b91c2c);
-            -webkit-background-clip: text; background-clip: text; color: transparent;
-            letter-spacing: -0.02em; margin-bottom: 1.2rem; text-align: center;
-        }
-        .server-box {
-            width: 100%; max-width: 520px;
-            background: rgba(12, 12, 20, 0.85); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-            border-radius: 32px; border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(229, 9, 20, 0.2);
-            overflow: hidden; display: flex; flex-direction: column;
-        }
-        .server-scroll {
-            max-height: 280px; overflow-y: auto; padding: 12px 14px;
-            display: flex; flex-direction: column; gap: 8px;
-        }
-        .server-scroll:empty::after {
-            content: 'Nenhum servidor. Toque em "+" para adicionar.';
-            display: block; text-align: center; padding: 25px 10px; color: #888; font-size: 0.8rem;
-        }
-        .server-card {
-            background: rgba(25, 25, 35, 0.8); border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 20px; padding: 14px 16px; cursor: pointer; transition: var(--transition);
-            display: flex; align-items: center; gap: 12px;
-            backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); outline: none;
-        }
-        .server-card:focus-visible { outline: var(--focus-outline); outline-offset: 2px; }
-        .server-card:hover, .server-card:focus {
-            background: rgba(229, 9, 20, 0.18); border-color: var(--accent);
-            transform: translateY(-1px); box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
-        }
-        .status-dot { width: 9px; height: 9px; border-radius: 50%; background: #555; flex-shrink: 0; transition: 0.3s; }
-        .status-dot.online { background: #00e676; box-shadow: 0 0 6px rgba(0, 230, 118, 0.5); }
-        .status-dot.offline { background: #ff4d4d; box-shadow: 0 0 5px rgba(255, 77, 77, 0.5); }
-        .server-info { flex: 1; min-width: 0; }
-        .server-name { font-weight: 700; font-size: 0.95rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .server-url { font-size: 0.65rem; color: #999; margin-top: 3px; word-break: break-all; font-family: 'SF Mono', 'Fira Code', monospace; opacity: 0.75; }
-        .delete-server {
-            background: rgba(0,0,0,0.5); border: none; color: #ff8a8a; font-size: 1.1rem;
-            cursor: pointer; padding: 6px 8px; border-radius: 40px; transition: var(--transition);
-            width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-        }
-        .delete-server:hover { background: var(--accent); color: #fff; transform: scale(1.1); }
-        .add-server-card {
-            background: rgba(30, 30, 45, 0.6); border: 1px dashed rgba(255, 255, 255, 0.25);
-            border-radius: 28px; padding: 13px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            color: #ccc; font-weight: 600; margin: 6px 14px 14px; font-size: 0.85rem;
-            transition: var(--transition); outline: none;
-        }
-        .add-server-card:focus-visible { outline: var(--focus-outline); outline-offset: 2px; }
-        .add-server-card:hover, .add-server-card:focus {
-            background: rgba(229, 9, 20, 0.25); border-color: var(--accent); color: #fff;
-        }
-        .custom-server-form {
-            background: rgba(0, 0, 0, 0.55); border-radius: 24px; padding: 16px;
-            display: none; flex-direction: column; gap: 10px; margin: 0 14px 16px;
-            border: 1px solid rgba(229, 9, 20, 0.3); animation: fadeSlide 0.25s ease;
-        }
-        @keyframes fadeSlide { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
-        .custom-server-form input {
-            background: rgba(20, 20, 30, 0.9); border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 36px; padding: 11px 14px; color: #fff; font-size: 0.85rem;
-            outline: none; transition: var(--transition);
-        }
-        .custom-server-form input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.2); }
-        .custom-server-form button {
-            background: linear-gradient(95deg, #e50914, #b81c24); border: none; border-radius: 36px;
-            padding: 12px; font-weight: 700; color: #fff; cursor: pointer; font-size: 0.85rem;
-            transition: opacity 0.2s; letter-spacing: 0.3px;
-        }
-        .custom-server-form button:disabled { opacity: 0.55; cursor: not-allowed; }
-        .error-msg { color: #ff8080; font-size: 0.7rem; display: none; text-align: center; }
 
-        #contentTypeSelection {
-            position: fixed; inset: 0;
-            background: radial-gradient(ellipse at 30% 30%, #0f0f1a, #020203);
-            display: none; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 100; padding: 1.5rem;
+        /* Cabeçalho com logo Claro TV+ */
+        .claro-header {
+            background: rgba(10, 20, 40, 0.65);
+            backdrop-filter: blur(12px);
+            border-radius: 2rem;
+            padding: 0.8rem 1.2rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            border: 1px solid rgba(0, 160, 255, 0.3);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
         }
-        #contentTypeSelection h2 {
-            font-size: 2rem; font-weight: 800; letter-spacing: -0.02em;
-            background: linear-gradient(135deg, #ff3b4a, #e50914, #b91c2c);
-            -webkit-background-clip: text; background-clip: text; color: transparent;
-            margin-bottom: 2rem; text-align: center;
-        }
-        .type-cards { display: flex; flex-wrap: wrap; gap: 1.2rem; justify-content: center; max-width: 600px; width: 100%; }
-        .type-card {
-            flex: 1 1 140px; max-width: 180px;
-            background: rgba(12, 12, 20, 0.85); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-            border-radius: 28px; border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-            display: flex; flex-direction: column; align-items: center; gap: 12px;
-            padding: 24px 16px; cursor: pointer; transition: var(--transition); outline: none;
-        }
-        .type-card:focus-visible { outline: var(--focus-outline); outline-offset: 2px; }
-        .type-card:hover, .type-card:focus { background: rgba(229, 9, 20, 0.25); border-color: var(--accent); transform: translateY(-3px); }
-        .type-card .type-icon { font-size: 3.5rem; }
-        .type-card .type-label { font-weight: 700; font-size: 1.1rem; color: #fff; }
 
-        #mainInterface { display: none; width: 100%; height: 100%; background: #050508; }
-        .app { display: flex; height: 100%; width: 100%; position: relative; }
-        .sidebar {
-            position: fixed; top: 0; left: 0; width: 275px;
-            height: 100vh; height: 100dvh;
-            background: rgba(6, 6, 11, 0.94); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-            border-right: 1px solid rgba(255, 255, 255, 0.06);
-            display: flex; flex-direction: column; z-index: 40;
-            transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-            box-shadow: 8px 0 30px rgba(0, 0, 0, 0.6); transform: translateX(0);
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
-        .sidebar-header {
-            padding: 16px 14px; display: flex; align-items: center; justify-content: space-between;
-            font-size: 1.4rem; font-weight: 800; letter-spacing: -0.4px;
-            background: linear-gradient(135deg, #ff4d5a, #e50914);
-            -webkit-background-clip: text; background-clip: text; color: transparent;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05); flex-shrink: 0;
-        }
-        .sidebar-actions { display: flex; gap: 4px; }
-        .change-server-btn, .history-btn {
-            background: rgba(255,255,255,0.06); border: none; color: #fff; font-size: 1.1rem;
-            cursor: pointer; padding: 4px 8px; border-radius: 40px; transition: 0.2s; outline: none;
-        }
-        .change-server-btn:focus-visible, .history-btn:focus-visible { outline: var(--focus-outline); outline-offset: 2px; }
-        .change-server-btn:hover, .history-btn:hover, .change-server-btn:focus, .history-btn:focus { background: var(--accent); color: #fff; }
 
-        .main-nav {
-            display: flex; gap: 4px; padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.04);
-            flex-shrink: 0;
+        .tv-icon {
+            font-size: 2rem;
+            filter: drop-shadow(0 2px 4px #00a0ff);
         }
-        .main-nav-btn {
-            flex: 1; background: rgba(255,255,255,0.03); border: 1px solid transparent;
-            border-radius: 12px; color: #ccc; font-size: 0.7rem; font-weight: 600;
-            padding: 8px 4px; cursor: pointer; transition: var(--transition);
-            display: flex; flex-direction: column; align-items: center; gap: 2px; outline: none;
-        }
-        .main-nav-btn.active { background: var(--accent); color: #fff; border-color: rgba(255,255,255,0.2); box-shadow: 0 4px 12px rgba(229,9,20,0.3); }
-        .main-nav-btn:hover:not(.active), .main-nav-btn:focus:not(.active) { background: rgba(229,9,20,0.25); border-color: rgba(229,9,20,0.5); }
 
-        .search-container {
-            padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.04);
-            display: none; flex-shrink: 0; position: relative;
+        .logo-text {
+            font-weight: 800;
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, #FFFFFF, #3b82f6, #00c3ff);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            letter-spacing: -0.3px;
         }
-        .search-container.visible { display: block; }
+
+        .badge-light {
+            background: #1e2a3a;
+            padding: 0.3rem 0.9rem;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #90caf9;
+            border: 1px solid #2d4a6e;
+        }
+
+        /* Cartão de ações */
+        .card-actions {
+            background: rgba(18, 28, 45, 0.8);
+            backdrop-filter: blur(8px);
+            border-radius: 1.8rem;
+            padding: 1.2rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #2d3e5e;
+        }
+
+        .search-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .search-label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #7e9ec5;
+            margin-bottom: 0.6rem;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
         .search-input {
-            width: 100%; background: rgba(20, 20, 30, 0.9); border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 20px; padding: 8px 12px; color: #fff; font-size: 0.75rem;
-            outline: none; transition: var(--transition);
+            flex: 1;
+            background: #0c1425;
+            border: 1px solid #2a3a55;
+            border-radius: 3rem;
+            padding: 0.9rem 1.2rem;
+            font-size: 1rem;
+            color: #ecf5ff;
+            outline: none;
+            transition: 0.2s;
         }
-        .search-input:focus { border-color: var(--accent); }
-        .search-suggestions {
-            position: absolute; top: 100%; left: 10px; right: 10px;
-            background: rgba(16,16,26,0.98); backdrop-filter: blur(16px);
-            border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;
-            max-height: 180px; overflow-y: auto; z-index: 50; display: none;
-            margin-top: 4px; box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-        }
-        .search-suggestions.show { display: block; }
-        .search-suggestion-item {
-            padding: 8px 12px; cursor: pointer; font-size: 0.75rem; color: #ddd;
-            display: flex; align-items: center; gap: 6px; transition: 0.1s;
-        }
-        .search-suggestion-item:hover, .search-suggestion-item:focus { background: rgba(229,9,20,0.3); color: #fff; }
 
-        .categories-list { flex: 1; overflow-y: auto; padding: 10px 8px; display: flex; flex-direction: column; gap: 4px; }
-        .category-item {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 10px 12px; background: rgba(255,255,255,0.025); border-radius: 14px;
-            cursor: pointer; transition: var(--transition); border: 1px solid transparent;
-            font-weight: 500; font-size: 0.82rem; outline: none; min-height: 42px;
+        .search-input:focus {
+            border-color: #2f8cff;
+            box-shadow: 0 0 0 2px #1e4b7a;
         }
-        .category-item:focus-visible { outline: var(--focus-outline); outline-offset: 2px; }
-        .category-item.active { background: linear-gradient(95deg, #e50914, #c4121f); color: #fff; box-shadow: 0 4px 12px rgba(229,9,20,0.3); border-color: rgba(255,255,255,0.2); font-weight: 600; }
-        .category-item:hover:not(.active), .category-item:focus:not(.active) { background: rgba(229,9,20,0.2); border-color: rgba(229,9,20,0.5); }
-        .cat-count { background: rgba(0,0,0,0.5); padding: 2px 8px; border-radius: 20px; font-size: 0.65rem; font-weight: 600; }
-        .status-info { padding: 10px; font-size: 0.65rem; text-align: center; border-top: 1px solid rgba(255,255,255,0.04); color: #aaa; flex-shrink: 0; }
 
-        .subcat-panel {
-            position: fixed; left: 285px; top: 60px; width: 320px;
-            max-height: calc(100% - 90px); background: var(--surface);
-            backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
-            border-radius: 24px; border: 1px solid rgba(255,255,255,0.1);
-            border-left: 4px solid var(--accent); padding: 6px 0; overflow-y: auto;
-            z-index: 45; box-shadow: 12px 18px 35px rgba(0,0,0,0.55);
-            transition: opacity 0.2s, transform 0.2s; transform-origin: top left;
+        .btn-primary {
+            background: linear-gradient(105deg, #1e5bc0, #0f3b80);
+            border: none;
+            border-radius: 3rem;
+            padding: 0 1.6rem;
+            font-weight: 600;
+            color: white;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
-        .subcat-panel.hidden { opacity: 0; pointer-events: none; transform: scale(0.95); }
-        .panel-title { padding: 10px 16px 12px; font-weight: 700; color: var(--accent); border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 4px; position: sticky; top: 0; background: var(--surface); z-index: 2; font-size: 0.9rem; }
-        .channel-subitem, .movie-item, .series-item, .episode-item {
-            padding: 10px 14px; cursor: pointer; transition: 0.12s; color: #eee;
-            border-left: 2px solid transparent; font-size: 0.82rem; font-weight: 500;
-            display: flex; align-items: center; gap: 10px; min-height: 44px; outline: none;
-        }
-        .channel-subitem:focus-visible, .movie-item:focus-visible, .series-item:focus-visible, .episode-item:focus-visible { outline: var(--focus-outline); outline-offset: -2px; background: rgba(229,9,20,0.25); }
-        .channel-subitem:hover, .movie-item:hover, .series-item:hover, .episode-item:hover, .channel-subitem:focus, .movie-item:focus, .series-item:focus, .episode-item:focus { background: rgba(229,9,20,0.3); border-left-color: var(--accent); padding-left: 18px; }
-        .item-logo { width: 36px; height: 36px; border-radius: 8px; object-fit: contain; background: rgba(255,255,255,0.05); flex-shrink: 0; border: 1px solid rgba(255,255,255,0.08); }
-        .item-fallback { width: 36px; height: 36px; border-radius: 8px; background: rgba(229,9,20,0.2); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
-        .item-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; padding: 10px; }
-        .movie-card { background: rgba(25,25,35,0.8); border-radius: 16px; overflow: hidden; cursor: pointer; transition: var(--transition); border: 1px solid transparent; outline: none; }
-        .movie-card:hover, .movie-card:focus { border-color: var(--accent); transform: translateY(-2px); }
-        .movie-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; background: #111; }
-        .movie-card .movie-title { padding: 6px 8px; font-size: 0.7rem; font-weight: 600; text-align: center; color: #ddd; }
+        .btn-primary:active {
+            transform: scale(0.97);
+            background: #2b6ed7;
+        }
 
-        .history-popup {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 90vw; max-width: 420px; max-height: 70vh;
-            background: rgba(12, 12, 20, 0.95); backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
-            border-radius: 28px; border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 30px 50px rgba(0,0,0,0.7);
-            z-index: 200; display: none; flex-direction: column; overflow: hidden;
+        .btn-secondary {
+            background: #1f2a44;
+            border: 1px solid #345;
+            border-radius: 3rem;
+            padding: 0.7rem 1.2rem;
+            font-weight: 500;
+            color: #cbdffc;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+            width: 100%;
         }
-        .history-popup.show { display: flex; }
-        .history-popup-header { padding: 14px 16px; font-weight: 700; font-size: 1rem; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center; color: var(--accent); }
-        .history-popup-close, .history-clear-btn { background: none; border: none; color: #fff; font-size: 1rem; cursor: pointer; padding: 4px 8px; border-radius: 20px; transition: 0.2s; margin-left: 4px; }
-        .history-clear-btn { font-size: 0.9rem; color: #ff8080; }
-        .history-popup-close:hover, .history-clear-btn:hover { background: rgba(255,255,255,0.1); }
-        .history-list { flex: 1; overflow-y: auto; padding: 8px; }
-        .history-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; cursor: pointer; transition: 0.15s; margin-bottom: 4px; background: rgba(255,255,255,0.02); }
-        .history-item:hover { background: rgba(229,9,20,0.2); }
-        .history-item .item-icon { font-size: 1.5rem; flex-shrink: 0; }
-        .history-item .item-details { flex: 1; min-width: 0; }
-        .history-item .item-title { font-weight: 600; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .history-item .item-sub { font-size: 0.65rem; color: #aaa; margin-top: 2px; }
-        .history-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 199; display: none; }
-        .history-backdrop.show { display: block; }
 
-        .resume-overlay {
-            position: absolute; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
-            display: none; align-items: center; justify-content: center; z-index: 20;
+        .btn-secondary:active {
+            background: #2a3a60;
         }
-        .resume-overlay.show { display: flex; }
-        .resume-dialog {
-            background: rgba(20, 20, 30, 0.95); border: 1px solid rgba(255,255,255,0.15);
-            border-radius: 24px; padding: 24px 28px; text-align: center; color: #fff;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-        }
-        .resume-dialog p { font-size: 1rem; margin-bottom: 16px; }
-        .resume-dialog button {
-            background: var(--accent); border: none; color: #fff; font-weight: 700;
-            padding: 10px 20px; border-radius: 30px; margin: 0 8px; cursor: pointer;
-            font-size: 0.85rem; transition: 0.2s; outline: none;
-        }
-        .resume-dialog button:hover { opacity: 0.85; }
-        .resume-dialog button.resume-no { background: rgba(255,255,255,0.15); }
 
-        .main-content {
-            flex: 1; margin-left: 275px; display: flex; justify-content: center; align-items: center;
-            background: radial-gradient(circle at 20% 30%, #0a0a12, #010103);
-            padding: 20px; min-width: 0; height: 100vh; height: 100dvh; overflow-y: auto;
+        /* Resultados */
+        .results-area {
+            background: #0b1120cc;
+            border-radius: 1.6rem;
+            padding: 0.2rem 0;
+            backdrop-filter: blur(4px);
         }
-        .player-wrapper {
-            width: 100%; max-width: 1300px; border-radius: 24px; overflow: hidden;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.65), 0 0 0 1px rgba(229,9,20,0.2);
-            background: #000; position: relative; aspect-ratio: 16 / 9;
-        }
-        .video-container { position: relative; width: 100%; height: 100%; background: #000; cursor: pointer; }
-        video { width: 100%; height: 100%; object-fit: contain; background: #000; display: block; }
-        .player-placeholder {
-            position: absolute; inset: 0;
-            background: radial-gradient(ellipse at 30% 30%, #11111d, #020206);
-            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
-            z-index: 2; transition: opacity 0.3s; pointer-events: none;
-        }
-        .player-placeholder.hidden { opacity: 0; }
-        .loading-overlay {
-            position: absolute; inset: 0; background: rgba(0,0,0,0.75);
-            display: flex; align-items: center; justify-content: center; z-index: 15;
-            backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); transition: opacity 0.25s;
-        }
-        .loading-overlay.hidden { opacity: 0; pointer-events: none; }
-        .spinner { width: 48px; height: 48px; border: 4px solid rgba(229,9,20,0.2); border-top: 4px solid #e50914; border-radius: 50%; animation: spin 0.7s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .player-controls {
-            position: absolute; bottom: 0; left: 0; right: 0;
-            background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 60%, transparent 100%);
-            padding: 45px 18px 14px; z-index: 10; opacity: 0;
-            transition: opacity 0.4s ease; display: flex; flex-direction: column; gap: 8px; pointer-events: none;
-        }
-        .video-container.show-controls .player-controls { opacity: 1; pointer-events: auto; }
-        .controls-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-        .now-playing-title { font-weight: 700; font-size: 0.9rem; text-shadow: 0 1px 4px rgba(0,0,0,0.9); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; color: #fff; }
-        .player-logo { width: 26px; height: 26px; border-radius: 6px; object-fit: contain; display: none; }
-        .player-logo.visible { display: inline; }
-        .stream-badge { background: var(--accent); color: #fff; padding: 3px 9px; border-radius: 16px; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.3px; flex-shrink: 0; text-transform: uppercase; }
 
-        .progress-container { width: 100%; height: 12px; position: relative; display: flex; align-items: center; cursor: pointer; }
-        .progress-container input[type=range] { width: 100%; height: 4px; -webkit-appearance: none; appearance: none; background: transparent; outline: none; position: absolute; z-index: 2; margin: 0; }
-        .progress-container input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: #e50914; border-radius: 50%; cursor: pointer; border: 2px solid #fff; box-shadow: 0 0 6px rgba(0,0,0,0.5); }
-        .progress-container .buffer-bar { position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; z-index: 1; width: 0%; transition: width 0.1s linear; }
-        .progress-container .progress-bar-bg { position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 4px; width: 100%; background: rgba(255,255,255,0.1); border-radius: 2px; z-index: 0; }
+        .account-card {
+            background: #0f172fe6;
+            border-radius: 1.4rem;
+            padding: 1.2rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid #2f8cff;
+            transition: all 0.1s;
+        }
 
-        .controls-bar { display: flex; align-items: center; gap: 10px; }
-        .ctrl-btn {
-            background: none; border: none; color: #fff; cursor: pointer; font-size: 1.4rem;
-            width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
-            border-radius: 50%; transition: var(--transition); flex-shrink: 0; opacity: 0.9; padding: 0; outline: none;
+        .account-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 10px;
         }
-        .ctrl-btn:focus-visible { outline: var(--focus-outline); outline-offset: 2px; }
-        .ctrl-btn:hover, .ctrl-btn:focus { background: rgba(255,255,255,0.12); opacity: 1; transform: scale(1.06); }
-        .ctrl-btn.big-play {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 3.5rem; width: 72px; height: 72px; background: rgba(229,9,20,0.85);
-            border-radius: 50%; z-index: 12; opacity: 0; pointer-events: none;
-            transition: opacity 0.25s, transform 0.25s; box-shadow: 0 6px 20px rgba(0,0,0,0.55);
+
+        .user-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
         }
-        .ctrl-btn.big-play.show { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
-        .volume-container { display: flex; align-items: center; gap: 4px; }
-        .volume-slider { -webkit-appearance: none; appearance: none; width: 65px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 4px; outline: none; cursor: pointer; }
-        .volume-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: #fff; border-radius: 50%; cursor: pointer; }
-        .time-display { font-size: 0.7rem; color: #ddd; font-variant-numeric: tabular-nums; }
-        .spacer { flex: 1; }
-        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 35; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
-        .overlay.active { opacity: 1; pointer-events: auto; }
-        .menu-toggle { display: none; position: fixed; top: 12px; left: 12px; background: rgba(0,0,0,0.8); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(229,9,20,0.5); color: #fff; font-size: 1.5rem; border-radius: 50px; width: 46px; height: 46px; cursor: pointer; z-index: 50; align-items: center; justify-content: center; }
-        @media (max-width: 780px) {
-            .sidebar { transform: translateX(-100%); width: 270px; }
-            .sidebar.open { transform: translateX(0); }
-            .menu-toggle { display: flex; }
-            .main-content { margin-left: 0; padding: 10px 6px 6px; }
-            .subcat-panel { left: 50%; top: 50%; transform: translate(-50%, -50%); width: 90vw; max-width: 360px; max-height: 75vh; border-radius: 24px; z-index: 46; }
-            .subcat-panel.hidden { transform: translate(-50%, -50%) scale(0.92); opacity: 0; }
+
+        .account-user {
+            font-family: 'SF Mono', monospace;
+            background: #010a1a;
+            padding: 0.4rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #b9dcff;
+            word-break: break-all;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #1a263a;
+            border-radius: 3rem;
+            padding: 0.2rem 0.7rem;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-dot.green { background: #22c55e; box-shadow: 0 0 4px #22c55e; }
+        .status-dot.red { background: #ef4444; box-shadow: 0 0 4px #ef4444; }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            background: #1f2a42;
+            border: none;
+            border-radius: 2rem;
+            padding: 0.4rem 0.9rem;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #b9d0ff;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+
+        .icon-btn:active {
+            background: #2d4070;
+        }
+
+        .services-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .service-badge {
+            background: #152032;
+            border-radius: 2rem;
+            padding: 0.3rem 0.9rem;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #9ac2f0;
+            border: 1px solid #2b4870;
+        }
+
+        .pass-hidden {
+            font-family: monospace;
+            font-size: 0.85rem;
+            background: #030b18;
+            padding: 0.2rem 0.8rem;
+            border-radius: 2rem;
+            color: #a0c0e6;
+            display: inline-block;
+        }
+
+        .empty-results {
+            text-align: center;
+            padding: 2rem;
+            color: #7c8eb0;
+        }
+
+        .random-section {
+            margin-top: 1rem;
+            border-top: 1px dashed #2c3e5e;
+            padding-top: 1.2rem;
+        }
+
+        .title-mini {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #8aacdf;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 0.65rem;
+            color: #3b5170;
+            margin-top: 1.5rem;
+        }
+
+        @media (max-width: 550px) {
+            body { padding: 0.8rem; }
+            .account-header { flex-direction: column; align-items: flex-start; }
+            .button-group { align-self: flex-end; }
+        }
+
+        .toast-msg {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1f9a6ed9;
+            backdrop-filter: blur(10px);
+            color: white;
+            font-weight: 600;
+            padding: 0.6rem 1.4rem;
+            border-radius: 60px;
+            font-size: 0.8rem;
+            z-index: 1000;
+            pointer-events: none;
+            font-family: monospace;
+            white-space: nowrap;
         }
     </style>
 </head>
 <body>
-    <div id="serverSelectionScreen">
-        <h1>⚡ UNI·TV</h1>
-        <div class="server-box">
-            <div class="server-scroll" id="serverScroll"></div>
-            <div class="add-server-card" id="addServerCard" tabindex="0">
-                <span style="font-size:1.3rem;">+</span> Adicionar servidor
+<div class="app-container">
+    <div class="claro-header">
+        <div class="logo-area">
+            <span class="tv-icon">📺</span>
+            <span class="logo-text">CLARO TV+</span>
+        </div>
+        <div class="badge-light" id="totalCountBadge">carregando...</div>
+    </div>
+
+    <div class="card-actions">
+        <div class="search-section">
+            <div class="search-label">🔍 BUSCAR CONTA (usuário / e-mail)</div>
+            <div class="search-box">
+                <input type="text" id="searchInput" class="search-input" placeholder="ex: valdemar, gmail.com, louperi">
+                <button id="searchBtn" class="btn-primary">Buscar</button>
             </div>
-            <div class="custom-server-form" id="customServerForm">
-                <input type="text" id="customUrl" placeholder="URL do servidor (API ou M3U)" autocomplete="off">
-                <input type="text" id="customUser" placeholder="Usuário (se aplicável)" autocomplete="off">
-                <input type="password" id="customPass" placeholder="Senha (se aplicável)" autocomplete="off">
-                <input type="text" id="customProxy" placeholder="Proxy CORS (opcional, ex: Worker Cloudflare)" autocomplete="off">
-                <div class="error-msg" id="customError">Preencha os campos obrigatórios.</div>
-                <button id="customAddBtn">Adicionar e verificar</button>
-            </div>
+        </div>
+
+        <div class="random-section">
+            <div class="title-mini"><span>🎲</span> GERADOR ALEATÓRIO</div>
+            <button id="randomBtn" class="btn-secondary">⚡ SORTEAR CONTA ATIVA</button>
         </div>
     </div>
 
-    <div id="contentTypeSelection">
-        <h2>🎯 O que deseja assistir?</h2>
-        <div class="type-cards">
-            <div class="type-card" data-mode="live" tabindex="0">
-                <span class="type-icon">📡</span>
-                <span class="type-label">Canais</span>
-            </div>
-            <div class="type-card" data-mode="movies" tabindex="0">
-                <span class="type-icon">🎬</span>
-                <span class="type-label">Filmes</span>
-            </div>
-            <div class="type-card" data-mode="series" tabindex="0">
-                <span class="type-icon">📺</span>
-                <span class="type-label">Séries</span>
-            </div>
-        </div>
+    <div class="results-area" id="resultsArea">
+        <div class="empty-results" id="emptyMessage">✨ Nenhuma conta selecionada<br>Use a busca ou clique em "Sortear"</div>
+        <div id="dynamicResults"></div>
     </div>
+    <footer>• Clique nos botões para copiar usuário / senha • Status baseado nos dados disponíveis</footer>
+</div>
 
-    <div id="mainInterface">
-        <div class="overlay" id="overlay"></div>
-        <button class="menu-toggle" id="menuToggle" aria-label="Menu" tabindex="0">☰</button>
-        <div class="app">
-            <div class="sidebar" id="sidebar">
-                <div class="sidebar-header">
-                    <span>UNI·TV</span>
-                    <div class="sidebar-actions">
-                        <button class="history-btn" id="historyBtn" title="Histórico" tabindex="0">👤</button>
-                        <button class="change-server-btn" id="changeServerBtn" title="Trocar servidor" tabindex="0">⚙️</button>
-                    </div>
-                </div>
-                <div class="main-nav" id="mainNav">
-                    <button class="main-nav-btn active" data-mode="live">📡 TV</button>
-                    <button class="main-nav-btn" data-mode="movies">🎬 Filmes</button>
-                    <button class="main-nav-btn" data-mode="series">📺 Séries</button>
-                </div>
-                <div class="search-container" id="searchContainer">
-                    <input type="text" class="search-input" id="searchInput" placeholder="Buscar..." autocomplete="off">
-                    <div class="search-suggestions" id="searchSuggestions"></div>
-                </div>
-                <div class="categories-list" id="categoriesList">
-                    <div style="padding:20px;text-align:center;color:#888;">Selecione uma categoria</div>
-                </div>
-                <div class="status-info" id="globalStatus">🔴 Conectando</div>
-            </div>
+<script>
+    // ------------------------------------------
+    // RAW DATA (mesmo conteúdo do arquivo original, limitado para exemplo)
+    // ------------------------------------------
+    const rawText = `51323281053:6808Adri | CPF = 51323281053 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+louperi:Palomo1! | CPF = 06535143872 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+21749833700:cartadepaz1 | CPF = 21749833700 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+abrahim_rj@msn.com:b1212121 | CPF = 05599845702 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+pa330486@gmail.com:788589@Cm | CPF = 03877195806 | GLOBO PLAY = Ativo
+10496644696:Digo@001 | CPF = 10496644696 | TVVAS = Ativo | DISNEY = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo
+67059260404:Arthur27 | CPF = 67059260404 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+valdemarneves:010Fq859jq2@ | CPF = 11981729836 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo
+13383178900:De10042023* | CPF = 13383178900
+david@ten.com.br:Wvmjcd@25 | CPF = 74441884753 | MAX = Ativo | TVVAS = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+yuri19972020@gmail.com:19972020r@SR | CPF = 46383067800 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+13933067000120:Hkg859722 | CPF = 13933067000120
+hsimoesnet:Mg801956 | CPF = 68573332620 | GLOBO PLAY = Ativo
+vaniajs2014@gmail.com:Amsn2008 | CPF = 62682610544 | CLARO VIDEO = Ativo
+10676934757:Q1w2e3r4@ | CPF = 10676934757 | GLOBO PLAY = Ativo
+rjannuzzi@yahoo.com.br:caio0207 | CPF = 01677941758 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo
+gustavosiberi:Eicla123 | CPF = 07668947892 | GLOBO PLAY = Ativo
+67346464087:Mkv@130863 | CPF = 67346464087 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+08494144669:Lu14061985# | CPF = 08494144669 | TELECINE = Ativo | PREMIERE = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+40244466904:st201070 | CPF = 40244466904 | GLOBO PLAY = Ativo
+fabianamanieri@hotmail.com:FFaa8956 | CPF = 55425844115 | GLOBO PLAY = Ativo
+03578734322:Da170414 | CPF = 03578734322
+karlaabreubarroso@gmail.com:Karla0918 | CPF = 40068668791 | PREMIERE = Ativo | GLOBO PLAY = Ativo
+tarcillacordeiro:Marina1608 | CPF = 35354887704 | MAX = Ativo | NETFLIX = Ativo | TELECINE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo | HBO ELETRONICOS = Ativo
+27149835880:DaniEla2002 | CPF = 27149835880 | GLOBO PLAY = Ativo
+45449156863:32558699Bb@ | CPF = 45449156863 | NETFLIX = Ativo | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+24747572791:Laika2020 | CPF = 24747572791 | DISNEY = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+12159850616:992909Lu@ | CPF = 12159850616 | GLOBO PLAY = Ativo
+09146856862:Lu@881087 | CPF = 09146856862 | MAX = Ativar | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativar
+48157958865:Krups130kol | CPF = 48157958865 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+claudioeda1970@gmail.com:Claudio@24 | CPF = 49328891191 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+yoshuahu@hotmail.com:mattei13 | CPF = 06335347903 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | TELECINE = Ativo | PREMIERE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo | HBO ELETRONICOS = Ativo
+calenet:Claro@1972 | CPF = 16803521800 | DISNEY = Ativo | NETFLIX = Ativo | GLOBO PLAY = Ativar
+alvaro.mt@terra.com.br:jkl7juku | CPF = 94603111134
+wendell154@yahoo.com.br:Traipu1041 | CPF = 30812146883 | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+39242883808:Mfs617091 | CPF = 39242883808 | GLOBO PLAY = Ativo
+sisleinenet:Ax-102030 | CPF = 08333962858 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+aaalinerose:Aceito01 | CPF = 73217751191 | TVVAS = Ativo | GLOBO PLAY = Ativo
+manoelspaiva:Marramce57 | CPF = 43244742734 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+cris.fms@gmail.com:lucca1909 | CPF = 10428520731
+60111364949:482448Ab | CPF = 60111364949 | GLOBO PLAY = Ativo
+gusdeboni@gmail.com:Alanis1984 | CPF = 32756323888 | TVVAS = Ativo | DISNEY = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+28653919813:Davi@@22 | CPF = 28653919813 | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativar
+10711854700:Jv335473* | CPF = 10711854700 | GLOBO PLAY = Ativo
+Hugofernandes:05081811kkHD | CPF = 10900601736 | GLOBO PLAY = Ativo
+augustusunb@gmail.com:a19941980A | CPF = 71579680100 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativar
+85marcia:Marcia85 | CPF = 86532146234 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+29368040869:152436eU | CPF = 29368040869 | GLOBO PLAY = Ativo
+Brazgato:3759Braz | CPF = 17459352748 | NETFLIX = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+25456247801:Amaterasu13 | CPF = 25456247801 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+alemelo2007@gmail.com:152069@Ale | CPF = 27830449864 | NETFLIX = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+gahsantosss:Luiz@2422 | CPF = 03802180119 | MAX = Ativo | DISNEY = Ativo | PREMIERE = Ativo | UNIVERSAL = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo
+08875581606:lula2022 | CPF = 08875581606 | GLOBO PLAY = Ativo
+01176114840:Gyll4321@@ | CPF = 01176114840 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+richardmaluco1984@hotmail.com:richard1712 | CPF = 06362016432 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+48401379865:Pietro79@ | CPF = 48401379865 | PREMIERE = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+23429283000:Fern@ndo2259 | CPF = 23429283000 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+18388431000132:*Ld24Vh10 | CPF = 18388431000132 | GLOBO PLAY = Ativo
+08292035249:adriana02 | CPF = 08292035249 | GLOBO PLAY = Ativo
+00880947829:Alegria50 | CPF = 00880947829 | MAX = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo
+EDSONSILVA5858@GMAIL.COM:Pelicano54 | CPF = 18399843172 | DISNEY = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+36933780880:$Padrao001 | CPF = 36933780880 | GLOBO PLAY = Ativo
+lapuente.jau@terra.com.br:Leo167150 | CPF = 20008416869 | GLOBO PLAY = Ativar
+03405127688:Hkj0250 | CPF = 03405127688 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+cavalheir0:Musica01 | CPF = 34508856934 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+Valdemarneves:010Fq859jq2@ | CPF = 11981729836 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo
+04130194380:82021495Ma@ | CPF = 04130194380 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+94927570282:#Vanessa10# | CPF = 94927570282 | NETFLIX = Ativo | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+Leandrommteles@hotmail.com:le071622 | CPF = 05807842669 | MAX = Ativar | DISNEY = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo
+96504862753:Sucesso68@ | CPF = 96504862753 | TELECINE = Ativo | PREMIERE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativar
+karinemtm:Numeros2@ | CPF = 68089783368 | GLOBO PLAY = Ativo
+anmavm@gmail.com:laluhe37 | CPF = 18121527791 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativar
+agdagianeazevedo@hotmail.com:gabi2702 | CPF = 11090661000171 | TELECINE = Ativo | UNIVERSAL = Ativo
+edgarecamila:Av151080 | CPF = 29722180860 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+44435344823:weslley100197 | CPF = 44435344823 | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+zMatrix:147852369k | CPF = 30087162881 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+ramfontes:N@nd@vi01 | CPF = 97410977604 | GLOBO PLAY = Ativo
+alessssa.aa@gmail.com:bruninha10 | CPF = 03522205898 | GLOBO PLAY = Ativo
+wantonio@uol.com.br:100155wa | CPF = 90541642804 | DISNEY = Ativo | NETFLIX = Ativo | GLOBO PLAY = Ativo
+Jhonsonso:rihanna88 | CPF = 10800614950 | MAX = Ativo | DISNEY = Ativo | GLOBO PLAY = Ativo
+31701086700:Ra1@1082 | CPF = 31701086700 | GLOBO PLAY = Ativo
+02646489943:@1971Yasmin | CPF = 02646489943 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+85886580620:013197rR | CPF = 85886580620 | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+23032953863:Papercut07 | CPF = 23032953863
+klorenzatto:086240Vik | CPF = 86964801634 | GLOBO PLAY = Ativo
+69620571568:250946Sil | CPF = 69620571568 | DISNEY = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+agdagianeazevedo@hotmail.com:gabi2702 | CPF = 11090661000171 | TELECINE = Ativo | UNIVERSAL = Ativo
+24626162843:M@rcelo1812 | CPF = 24626162843 | GLOBO PLAY = Ativo
+40634005812:2210Zaz@ | CPF = 40634005812 | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+raiduartejales:Dragonite.13 | CPF = 14136455771 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+miltonthe1820@hotmail.com:#jos1010milT | CPF = 34744932304 | CLARO VIDEO = Ativo
+30031613772:Lt45mtbfuji | CPF = 30031613772 | TVVAS = Ativo | NETFLIX = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+08728671708:Ana183729 | CPF = 08728671708 | GLOBO PLAY = Ativo
+46486108819:freestep741 | CPF = 46486108819 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+mirian218@terra.com.br:etnDCF69 | CPF = 00767729854 | MAX = Ativo | NETFLIX = Ativar | PREMIERE = Ativo | UNIVERSAL = Ativar | PARAMOUNT = Ativo | GLOBO PLAY = Ativo
+roguex94@gmail.com:Felipe100594 | CPF = 45326830841 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+weslleybarbosa.:Porramerd@2 | CPF = 32764470000118
+danielschiites@gmail.com:Dss@190890 | CPF = 02400352089 | MAX = Ativo | DISNEY = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativar
+luizotavio.ramos@gmail.com:Talu1959 | CPF = 40658970682 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+mj.mendes@terra.com.br:Man1Mon1 | CPF = 72393203834
+08233750727:Dani12188 | CPF = 08233750727 | NETFLIX = Ativo | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+silvioff:Mat00264619 | CPF = 31078176434 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+lmoura38:L1161u55E | CPF = 80353622753 | TVVAS = Ativo | PREMIERE = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo
+12171510870:Terra767 | CPF = 12171510870 | GLOBO PLAY = Ativo
+87324687687:Cora140875@# | CPF = 87324687687 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PREMIERE = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+69620571568:250946Sil | CPF = 69620571568 | DISNEY = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+zecacostanovo:zecacosta74 | CPF = 21096570815 | PREMIERE = Ativo | GLOBO PLAY = Ativo
+andre.psilva:celinha72 | CPF = 51668017172 | GLOBO PLAY = Ativo
+flaviobeta@hotmail.com:201176Fl@ | CPF = 25841607812 | GLOBO PLAY = Ativar
+jefinhosantos479@gmail.com:@Jeff2910 | CPF = 08694922509 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+paulatedescod@yahoo.com.br:Bruna@2003 | CPF = 27103817880 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+25831430855:C@rlos1500 | CPF = 25831430855 | GLOBO PLAY = Ativo
+lenat:Lenatais4 | CPF = 01332611745 | NETFLIX = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+89425154791:Gas190399 | CPF = 89425154791 | GLOBO PLAY = Ativo
+calenet:Claro@1972 | CPF = 16803521800 | DISNEY = Ativo | NETFLIX = Ativo | GLOBO PLAY = Ativar
+joaosenna21@gmail.com:Bolasha2017@ | CPF = 44073955837 | GLOBO PLAY = Ativo
+casameireles:Nice1974 | CPF = 67807674253 | GLOBO PLAY = Ativar
+02157769170:dia28022022 | CPF = 02157769170 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+36157007591:Denilton1908 | CPF = 36157007591 | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+rodrigoamantefpolis@hotmail.com:Nefert1t1* | CPF = 93255276934 | MAX = Ativo | DISNEY = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+25544612870:14032008v | CPF = 25544612870 | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+18388431000132:*Ld24Vh10 | CPF = 18388431000132 | GLOBO PLAY = Ativo
+02880393191:Kt200822 | CPF = 02880393191 | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+vanilda.akiossi@gmail.com:Va28le26 | CPF = 13621176845 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+jefinacio:jefsil90 | CPF = 62188461991 | GLOBO PLAY = Ativar
+03784429882:Lana2212 | CPF = 03784429882 | DISNEY = Ativo | NETFLIX = Ativo | GLOBO PLAY = Ativo
+62768956791:Aeroporto1960 | CPF = 62768956791 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+93228350959:Aquela321 | CPF = 93228350959 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+iemanuelsl@gmail.com:linsS#rogi8 | CPF = 04189637548 | DISNEY = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+ronaldoqueiroga:@@Rsq1986@@ | CPF = 33831355860 | GLOBO PLAY = Ativo
+65510615087:Vonder1975 | CPF = 65510615087 | NETFLIX = Ativo | PREMIERE = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo
+07918034902:eunaoseiler1A | CPF = 07918034902 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+cavalheir0:Musica01 | CPF = 34508856934 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+19257996204:Reina170901 | CPF = 19257996204 | NETFLIX = Ativo | PREMIERE = Ativo | COMBATE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+Valdemarneves:010Fq859jq2@ | CPF = 11981729836 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo
+18388431000132:*Ld24Vh10 | CPF = 18388431000132 | GLOBO PLAY = Ativo
+andreiavfj@bol.com.br:allan04kaique21 | CPF = 24687644805 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+00461301520:975@Matheus | CPF = 00461301520 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+segovi10:Lucyandsky21 | CPF = 07775151722 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+chriscantolima@hotmail.com:Salmo91$ | CPF = 00997229764 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PREMIERE = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+monitoramento@stiveseg.com.br:Stiveseg4009 | CPF = 40090035000183
+04087531538:Jk0157642839 | CPF = 04087531538 | GLOBO PLAY = Ativar
+regina.bernardino@gmail.com:Ninaarj34@ | CPF = 91755638787 | MAX = Ativo | NETFLIX = Ativo | TELECINE = Ativo | UNIVERSAL = Ativar | GLOBO PLAY = Ativo | HBO ELETRONICOS = Ativo
+ifuentes@terra.com.br:Teclado1@ | CPF = 60026981327 | GLOBO PLAY = Ativo
+85marcia:Marcia85 | CPF = 86532146234 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+21740831837:Erne1949 | CPF = 21740831837 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+di.palazzo@hotmail.com:Palazzo2025 | CPF = 10974083968 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+84684186253:Ithan1310 | CPF = 84684186253 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+03161041593:Seja1bom@ | CPF = 03161041593 | MAX = Ativo | GLOBO PLAY = Ativo
+85151009915:lokobemloko23 | CPF = 85151009915 | DISNEY = Ativo | NETFLIX = Ativo | GLOBO PLAY = Ativar | CLARO VIDEO = Ativo
+62768956791:Aeroporto1960 | CPF = 62768956791 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+iemanuelsl@gmail.com:linsS#rogi8 | CPF = 04189637548 | DISNEY = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+74398105620:LaikaGra05** | CPF = 74398105620 | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+01025481887:1jacare314 | CPF = 01025481887 | MAX = Ativo | TVVAS = Ativo | NETFLIX = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+igor2312:Igorgalo13 | CPF = 14442656606 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+clarissefranco:clacla210536 | CPF = 32866682734 | MAX = Ativar | DISNEY = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+yasmin.alexandra@hotmail.com:BVBVM7991mtk# | CPF = 38242408823 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+pedrosanchezsass@gmail.com:diaFeliz1352 | CPF = 42889180816 | GLOBO PLAY = Ativo
+miltonthe1820@hotmail.com:#jos1010milT | CPF = 34744932304 | CLARO VIDEO = Ativo
+pugpug:Aline2305 | CPF = 63552752668 | GLOBO PLAY = Ativo
+62569406287:F@t1masi | CPF = 62569406287 | GLOBO PLAY = Ativo
+11053939760:F@bricio1 | CPF = 11053939760 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+laystrierweiler@gmail.com:lays1989 | CPF = 05917144931 | GLOBO PLAY = Ativo
+06520070580:ta386152 | CPF = 06520070580 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+beatrizcapao:86Simba09 | CPF = 11129326748 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+cesar-pel@hotmail.com:Pel867198* | CPF = 27828140606 | GLOBO PLAY = Ativo
+eid.e.nanda@gmail.com:12Chuva12# | CPF = 01368715184 | UNIVERSAL = Ativar | GLOBO PLAY = Ativo
+gustavosiberi:Eicla123 | CPF = 07668947892 | GLOBO PLAY = Ativo
+sandrajvieira:Sv010203 | CPF = 62760068587 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+47365315687:@Lexbhc7211 | CPF = 47365315687 | GLOBO PLAY = Ativo
+42312463865:Felinos95* | CPF = 42312463865 | MAX = Ativar | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+anchietaisabela@gmail.com:Mortandela1 | CPF = 05799208102 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+49724517691:R@n@5318C | CPF = 49724517691 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+13043710770:04092021nessA | CPF = 13043710770 | NETFLIX = Ativo | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+00980541204:Loro1920 | CPF = 00980541204 | NETFLIX = Ativo | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+johnny_mondadori@hotmail.com:adrielee25 | CPF = 07767946983 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+00133465802:Juca1010 | CPF = 00133465802 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+28543955068:@liberte57 | CPF = 28543955068 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+amota000:zecabaru2 | CPF = 15091970100 | MAX = Ativo | TVVAS = Ativo | PREMIERE = Ativo | UNIVERSAL = Ativar | PARAMOUNT = Ativo | GLOBO PLAY = Ativo
+62768956791:Aeroporto1960 | CPF = 62768956791 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+andersonabhu@gmail.com:Ame5323eclat | CPF = 03370796929 | GLOBO PLAY = Ativo
+lejesus10:Anhembi@2022 | CPF = 33306620858 | GLOBO PLAY = Ativo
+esterlar:Shine2578* | CPF = 14647507858 | TVVAS = Ativo | NETFLIX = Ativo | GLOBO PLAY = Ativo
+mtulioar@yahoo.com.br:MT353212ar | CPF = 04940035611 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativar
+wilmafs:S061439w | CPF = 30780209753 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo | HBO ELETRONICOS = Ativo
+28840483837:Meliss@10 | CPF = 28840483837 | GLOBO PLAY = Ativo
+luiza.santos@datafolha.com.br:Setembro08 | CPF = 08765621875 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+anchietaisabela@gmail.com:Mortandela1 | CPF = 05799208102 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+25544612870:14032008v | CPF = 25544612870 | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+78517893387:pai251254 | CPF = 78517893387 | NETFLIX = Ativo | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+02187128806:Santista10 | CPF = 02187128806 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+Luciano21mg:Lu14061985# | CPF = 08494144669 | TELECINE = Ativo | PREMIERE = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+cecilia_sant:A779b55** | CPF = 13352621802 | GLOBO PLAY = Ativo
+c_edu_1@hotmail.com:Carlos08nov1975 | CPF = 01167636635 | PREMIERE = Ativo | GLOBO PLAY = Ativo
+Lucas.bazilio91@gmail.com:199177Lcs | CPF = 38407520861 | DISNEY = Ativo | NETFLIX = Ativo | GLOBO PLAY = Ativo
+01154537765:Pepe0507 | CPF = 01154537765 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+08777202902:HBo@93TzAs | CPF = 08777202902 | GLOBO PLAY = Ativar
+esterlar:Shine2578* | CPF = 14647507858 | TVVAS = Ativo | NETFLIX = Ativo | GLOBO PLAY = Ativo
+17440084268:Mare030289 | CPF = 17440084268 | MAX = Ativo | TVVAS = Ativo | NETFLIX = Ativo | TELECINE = Ativo | APPLE TV = Ativo | COMBATE = Ativo | UNIVERSAL = Ativar | GLOBO PLAY = Ativo | HBO ELETRONICOS = Ativo
+lchimenti:Dxx44009576 | CPF = 03253353893 | GLOBO PLAY = Ativo
+66039002549:Claro900@ | CPF = 66039002549 | NETFLIX = Ativo | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+zelinda_am@yahoo.com.br:yasmin1607 | CPF = 41329228200 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | TELECINE = Ativo | APPLE TV = Ativo | PREMIERE = Ativo | COMBATE = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativar
+31640691898:27022017Tj$ | CPF = 31640691898 | MAX = Ativo | DISNEY = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativar
+RENATO32144@HOTMAIL.COM:Sesmt@2024 | CPF = 37579340836 | GLOBO PLAY = Ativo
+ana.lchaves:02Thalita | CPF = 19342341845 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+06413926481:1qw23er4A@ | CPF = 06413926481 | GLOBO PLAY = Ativo
+10249299739:Danimi*03 | CPF = 10249299739 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+28215990304:A32445137o | CPF = 28215990304 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+32900836832:@GABIlili1218& | CPF = 32900836832 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+valderifs@gmail.com:Vfs020577 | CPF = 27488277830 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+eduardo.monari:edu010300 | CPF = 24834190030 | TELECINE = Ativo | PREMIERE = Ativo | COMBATE = Ativo | UNIVERSAL = Ativar | PARAMOUNT = Ativo | GLOBO PLAY = Ativar
+21896309836:43302974jilf | CPF = 21896309836 | GLOBO PLAY = Ativar
+ticiano.ximenes@gmail.com:claro9878747 | CPF = 91656702487 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+chavesphotos@gmail.com:CL@008800ro | CPF = 93637462591 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+58542868153:Emc19490 | CPF = 58542868153 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+gustavosiberi:Eicla123 | CPF = 07668947892 | GLOBO PLAY = Ativo
+40274566885:Petecas747578* | CPF = 40274566885
+05958763660:Phrcastro1 | CPF = 05958763660 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+felipecacau:47487981Fe | CPF = 25335600810 | NETFLIX = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+04487421012:Queroqueijo98 | CPF = 04487421012 | MAX = Ativo | DISNEY = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+09470521862:banana01 | CPF = 09470521862 | MAX = Ativo | NETFLIX = Ativo | TELECINE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo | HBO ELETRONICOS = Ativo
+beatrizcapao:86Simba09 | CPF = 11129326748 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+pablosaldanha@gmail.com:50dc4sat | CPF = 09910831724 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+42312463865:Felinos95* | CPF = 42312463865 | MAX = Ativar | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+12585081680:Jrbogo122 | CPF = 12585081680 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+Alexandredsm:Alexandre0310 | CPF = 13850507807 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+vagnersalinas@hotmail.com:V@gner1976 | CPF = 21935824830 | GLOBO PLAY = Ativo
+01570241139:@emanuelly12 | CPF = 01570241139
+03320555588:Lhmp7425@ | CPF = 03320555588 | MAX = Ativar | DISNEY = Ativar | APPLE TV = Ativar | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+carlinhosdagavea@gmail.com:Carlos427 | CPF = 00613813731 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+danielseguranca@yahoo.com.br:Syndi134 | CPF = 27950924845 | MAX = Ativo | DISNEY = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo
+ti.amazonia:ARS@amazonia01 | CPF = 10787004000115 | NETFLIX = Ativo
+00896277178:84213308@Bc | CPF = 00896277178 | GLOBO PLAY = Ativo
+samuelnsales@outlook.com:Ithan1310 | CPF = 84684186253 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+02852778122:So*170412 | CPF = 02852778122 | GLOBO PLAY = Ativo
+pablosaldanha@gmail.com:50dc4sat | CPF = 09910831724 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+tarcillacordeiro:Marina1608 | CPF = 35354887704 | MAX = Ativo | NETFLIX = Ativo | TELECINE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo | HBO ELETRONICOS = Ativo
+04825696708:Pba260911 | CPF = 04825696708 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+Borgesmauri:Borgespedro2 | CPF = 36552380968
+03804123732:maxtro11 | CPF = 03804123732 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+15520379831:Rezistro@10 | CPF = 15520379831 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+rogmc1:Orypaba52 | CPF = 08665267816 | GLOBO PLAY = Ativo
+mah.cerqueira:a221115G | CPF = 20001763806 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | GLOBO PLAY = Ativo
+kidvanballa:S1a3n5r7 | CPF = 09537907899 | MAX = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo | HBO ELETRONICOS = Ativo
+luiza.santos@datafolha.com.br:Setembro08 | CPF = 08765621875 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+39507332804:Bio09gu* | CPF = 39507332804 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+davidpgomez:Eusoulegal1 | CPF = 07282390355 | GLOBO PLAY = Ativo
+paulolustosa22@gmail.com:Lela2591 | CPF = 00044512368 | MAX = Ativo | TVVAS = Ativo | DISNEY = Ativo | TELECINE = Ativo | PREMIERE = Ativo | COMBATE = Ativo | UNIVERSAL = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo | CAMPEONATO CARIOCA = Ativo
+leoxinho.junior@hotmail.com:@SeGama05 | CPF = 02954930110 | GLOBO PLAY = Ativo
+86874748068:t86120765 | CPF = 86874748068 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+lima_junior:Pati258525$ | CPF = 01383556490 | NETFLIX = Ativo | GLOBO PLAY = Ativar
+atendimento@youandus.com.br:winner996827 | CPF = 30313028850 | GLOBO PLAY = Ativo
+vamosparaluz@hotmail.com:Et780415 | CPF = 39763635888 | GLOBO PLAY = Ativar
+93228350959:Aquela321 | CPF = 93228350959 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+03211167048:240695Pr@ | CPF = 03211167048 | GLOBO PLAY = Ativo
+40582264200:neell11K | CPF = 40582264200 | MAX = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+evertonwendtti@gmail.com:pazeluz70 | CPF = 21730792049 | GLOBO PLAY = Ativo
+34245158840:Agtlaze7 | CPF = 34245158840 | GLOBO PLAY = Ativar
+dinizle23@gmail.com:Jose1363 | CPF = 00636550630 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+05643102803:isabela8 | CPF = 05643102803 | MAX = Ativar | DISNEY = Ativar | APPLE TV = Ativar | GLOBO PLAY = Ativo
+dmariamoura@bol.com.br:Acsa0210 | CPF = 86045671511 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+rjannuzzi@yahoo.com.br:caio0207 | CPF = 01677941758 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo
+RIOJAVEP:Riojavep44 | CPF = 50752211000744
+gifrandomingues@gmail.com:Giamerica08$ | CPF = 21811098851 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+Luciano21mg:Lu14061985# | CPF = 08494144669 | TELECINE = Ativo | PREMIERE = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+sisleinenet:Ax-102030 | CPF = 08333962858 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+mariapatriciacardoso@hotmail.com:meusfilhos2 | CPF = 29968270822 | GLOBO PLAY = Ativo
+48157958865:Krups130kol | CPF = 48157958865 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+2109.cinthya@gmail.com:laura2109 | CPF = 07207591888 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+00712773665:mCp#8R3D*4NWs_J | CPF = 00712773665 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+pablosaldanha@gmail.com:50dc4sat | CPF = 09910831724 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+37642592809:@Lu010566 | CPF = 37642592809 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+01284738272:Arta2024 | CPF = 01284738272 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+augustusunb@gmail.com:a19941980A | CPF = 71579680100 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativar
+63548054153:edmadavi1 | CPF = 63548054153 | GLOBO PLAY = Ativo
+Nathalia.nsd@gmail.com:7809nathy | CPF = 10928015700 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+26549908850:Junior1605 | CPF = 26549908850 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+18388431000132:*Ld24Vh10 | CPF = 18388431000132 | GLOBO PLAY = Ativo
+izazuca:Iza060648 | CPF = 27322257898 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+66039002549:Claro900@ | CPF = 66039002549 | NETFLIX = Ativo | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+ifuentes@terra.com.br:Teclado1@ | CPF = 60026981327 | GLOBO PLAY = Ativo
+advlucianalopes@hotmail.com:lu24tm21 | CPF = 31841548820 | GLOBO PLAY = Ativo
+bernadeteneri:Boneri53 | CPF = 09615610500 | GLOBO PLAY = Ativo
+edubessasilva:Miranda@54 | CPF = 35502258300 | PREMIERE = Ativo | GLOBO PLAY = Ativo
+52459276753:231198pa | CPF = 52459276753 | DISNEY = Ativo | GLOBO PLAY = Ativo
+fcardoson@gmail.com:250Nro1# | CPF = 11539636801 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+fcardoson@gmail.com:250Nro1# | CPF = 11539636801 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+06339327605:Mvca27017507 | CPF = 06339327605 | GLOBO PLAY = Ativo
+19822960204:57021512lo | CPF = 19822960204 | GLOBO PLAY = Ativo
+40707451817:E843512n | CPF = 40707451817 | GLOBO PLAY = Ativo
+prof.fortes@yahoo.com.br:Odisseia1 | CPF = 73783900700 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+06031055643:192534Claro | CPF = 06031055643
+87324687687:Cora140875@# | CPF = 87324687687 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PREMIERE = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+18129514850:C@sei100115 | CPF = 18129514850 | DISNEY = Ativo | GLOBO PLAY = Ativo
+11024435490:Gustavo@04031995 | CPF = 11024435490 | GLOBO PLAY = Ativo
+notreve_asuos:MelEvt1473@PGE | CPF = 99963523668 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+fcardoson@gmail.com:250Nro1# | CPF = 11539636801 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+07803452582:#Sucesso2021 | CPF = 07803452582 | GLOBO PLAY = Ativo
+08371808992:Halcali@28 | CPF = 08371808992 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+58199330872:Cla@2020 | CPF = 58199330872 | TELECINE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+26737565824:002Geral@ | CPF = 26737565824 | GLOBO PLAY = Ativo
+gpracadecor:maxibor1 | CPF = 10429647778 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+bruno_alyson:Familia2019 | CPF = 62914587309 | GLOBO PLAY = Ativo
+06871002596:kh9912fcle7sa | CPF = 06871002596 | GLOBO PLAY = Ativar | CLARO VIDEO = Ativo
+47799737832:12doumde97 | CPF = 47799737832 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+guicanicosta:Costagui1 | CPF = 07212923990 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+greghabib:1q2w3e4r* | CPF = 38148284881
+40779784839:BigClaro@13 | CPF = 40779784839 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+r.amaro86@gmail.com:Tavares1982@ | CPF = 32145480854
+amanda_meirinhos@hotmail.com:Gae242102 | CPF = 14301371850 | MAX = Ativo | TELECINE = Ativo | UNIVERSAL = Ativar | GLOBO PLAY = Ativo | HBO ELETRONICOS = Ativo
+21740831837:Erne1949 | CPF = 21740831837 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+03751374086:madara23 | CPF = 03751374086 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+petra_jr@hotmail.com:Opj@7522 | CPF = 18068924809 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+09470521862:banana01 | CPF = 09470521862 | MAX = Ativo | NETFLIX = Ativo | TELECINE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo | HBO ELETRONICOS = Ativo
+teusinmaximo@hotmail.com:Ma@126066 | CPF = 09946779609 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+69152055000:chocolate79 | CPF = 69152055000 | GLOBO PLAY = Ativo
+prof.fortes@yahoo.com.br:Odisseia1 | CPF = 73783900700 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+virgilio971617@hotmail.com:Jr971617 | CPF = 03488020215 | GLOBO PLAY = Ativar
+84684186253:Ithan1310 | CPF = 84684186253 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+financeiro@associacaomma.org.br:Mma2023* | CPF = 25263242000107
+dsadaniassis@hotmail.com:Raiane2@22 | CPF = 07299577720 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+beatrisaraujo:D@nton0501 | CPF = 56668007015 | TVVAS = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+01654013200:Clubedoremo1905 | CPF = 01654013200 | GLOBO PLAY = Ativar | CLARO VIDEO = Ativo
+82006938720:atemanha354@ | CPF = 82006938720 | CLARO VIDEO = Ativo
+gpracadecor:maxibor1 | CPF = 10429647778 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+09259269733:Mack@0611 | CPF = 09259269733 | NETFLIX = Ativo | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+casameireles:Nice1974 | CPF = 67807674253 | GLOBO PLAY = Ativar
+andressa-10-mel@hotmail.com:Herondale6 | CPF = 44693115886 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+33990319809:an@B290509 | CPF = 33990319809 | GLOBO PLAY = Ativo
+aos_ceus@hotmail.com:cobra2008 | CPF = 05645073690 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+85marcia:Marcia85 | CPF = 86532146234 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+ismaelsantosaragao@hotmail.com:Leamsi_88 | CPF = 03362504523
+62348833387:Ronny_120581 | CPF = 62348833387 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativar
+38521539134:825400@*s | CPF = 38521539134 | MAX = Ativo | TVVAS = Ativo | TELECINE = Ativo | PREMIERE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo | HBO ELETRONICOS = Ativo
+02716353123:thor*1166 | CPF = 02716353123 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+deboralacerdas@hotmail.com:Debora02 | CPF = 42866464168 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+andreasweber2009@hotmail.com:bugatti20 | CPF = 20059159987 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+87324687687:Cora140875@# | CPF = 87324687687 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PREMIERE = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+88650960553:Smvs1976@ | CPF = 88650960553 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativar
+Carlos.mark.nik@gmail.com:Nicolas27032008 | CPF = 09167508847 | NETFLIX = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativar
+marciomontserrat@marciomontserrat.com.br:Botafogo10 | CPF = 34714421700 | MAX = Ativo | GLOBO PLAY = Ativo
+fab200334@gmail.com:Vuvuzela@01 | CPF = 29608434874 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+64409813404:64409813404g | CPF = 64409813404 | NETFLIX = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+18807838869:junior99 | CPF = 18807838869 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+fred.augusto:Castro82 | CPF = 09181324790 | MAX = Ativo | NETFLIX = Ativo | UNIVERSAL = Ativar | GLOBO PLAY = Ativo
+29253767898:Fab1979@ | CPF = 29253767898 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+kleber.simao@gmail.com:Kl160110@ | CPF = 36772896882 | GLOBO PLAY = Ativo
+gpracadecor:maxibor1 | CPF = 10429647778 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+bayerpoa:105252 | CPF = 21161526072 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+27996434859:felipe1219 | CPF = 27996434859 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+pizack:bolaca | CPF = 29740529836 | MAX = Ativo | TVVAS = Ativo | NETFLIX = Ativo | TELECINE = Ativo | COMBATE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+06192380899:Ines1964* | CPF = 06192380899 | GLOBO PLAY = Ativar
+fflavio464@gmail.com:flavio30 | CPF = 26424533249 | GLOBO PLAY = Ativo
+rjannuzzi@yahoo.com.br:caio0207 | CPF = 01677941758 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo
+atendimento@youandus.com.br:winner996827 | CPF = 30313028850 | GLOBO PLAY = Ativo
+casameireles:Nice1974 | CPF = 67807674253 | GLOBO PLAY = Ativar
+36588590830:hot-dog321 | CPF = 36588590830 | GLOBO PLAY = Ativar
+14210541087:Valdomiro4519 | CPF = 14210541087 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+75835819234:1024Corleone | CPF = 75835819234 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+emersonmees:oab028125 | CPF = 75835614934 | MAX = Ativo
+alessandrokarl@gmail.com:gsigti01 | CPF = 07141288724 | DISNEY = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativar
+wilmafs:S061439w | CPF = 30780209753 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo | HBO ELETRONICOS = Ativo
+09525892816:Sonimar3873# | CPF = 09525892816 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+alessssa.aa@gmail.com:bruninha10 | CPF = 03522205898 | GLOBO PLAY = Ativo
+19257996204:Reina170901 | CPF = 19257996204 | NETFLIX = Ativo | PREMIERE = Ativo | COMBATE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+Lordsidius:christine | CPF = 06984857775 | GLOBO PLAY = Ativar
+emersonmees:oab028125 | CPF = 75835614934 | MAX = Ativo
+fab200334@gmail.com:Vuvuzela@01 | CPF = 29608434874 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+03460508981:D@m5271d | CPF = 03460508981 | GLOBO PLAY = Ativo
+03453080262:lima9098 | CPF = 03453080262 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+Reumatica:Reumatica123 | CPF = 77541340200 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+89425154791:Gas190399 | CPF = 89425154791 | GLOBO PLAY = Ativo
+junior_halflore@hotmail.com:claro001 | CPF = 30422782000118
+05287992742:Fl230476 | CPF = 05287992742 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+fabiobrendler@outlook.com:Lari0310@ | CPF = 00548907056 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+00450185885:dimucci1955 | CPF = 00450185885 | DISNEY = Ativo | GLOBO PLAY = Ativo
+02473727147:Bjsc1965 | CPF = 02473727147 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+jovindes88@gmail.com:djjovs8855 | CPF = 07186731155 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+20331965852:Tmrp1979 | CPF = 20331965852 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+luizotavio.ramos@gmail.com:Talu1959 | CPF = 40658970682 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+30095914897:Al3x@ndr3 | CPF = 30095914897 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+col.vintecinco:a34782524 | CPF = 00286178000140 | CLARO VIDEO = Ativo
+felipecacau:47487981Fe | CPF = 25335600810 | NETFLIX = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+72972084349:Jhonny45 | CPF = 72972084349 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+13342010053:AdilsonArthur1981 | CPF = 13342010053 | TVVAS = Ativo | DISNEY = Ativo | NETFLIX = Ativo | GLOBO PLAY = Ativo
+08302671746:Gi@290507 | CPF = 08302671746 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+raiduartejales:Dragonite.13 | CPF = 14136455771 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+01709475994:Elh157689 | CPF = 01709475994 | GLOBO PLAY = Ativar
+rafaelborboni@yahoo.com.br:290684ra | CPF = 10291830668 | GLOBO PLAY = Ativo
+08005431813:Fabio-135 | CPF = 08005431813 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+06123545396:Marcio13099696 | CPF = 06123545396 | MAX = Ativar | COMBATE = Ativo | UNIVERSAL = Ativar | GLOBO PLAY = Ativar | CLARO VIDEO = Ativo
+07361539696:media100 | CPF = 07361539696 | GLOBO PLAY = Ativo
+Sakiyama.:Hyuuganeji13 | CPF = 20472846949 | GLOBO PLAY = Ativo
+88650960553:Smvs1976@ | CPF = 88650960553 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativar
+09574021718:cabnet75 | CPF = 09574021718 | GLOBO PLAY = Ativar
+bernadeteneri:Boneri53 | CPF = 09615610500 | GLOBO PLAY = Ativo
+01497647665:Ks2501@@ | CPF = 01497647665 | MAX = Ativo | TVVAS = Ativo | DISNEY = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | COMBATE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+marlise.passig@gmail.com:@noxusbr2025 | CPF = 54348927987 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativar
+25544612870:14032008v | CPF = 25544612870 | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+13854114818:Ambientz13 | CPF = 13854114818
+08607968920:Flor@1717 | CPF = 08607968920 | GLOBO PLAY = Ativo
+bangalodecora@gmail.com:Ba32@984 | CPF = 32984774000190
+07394691691:358Santos | CPF = 07394691691 | DISNEY = Ativo | NETFLIX = Ativo | GLOBO PLAY = Ativo
+cristine73:Lagarta14 | CPF = 61018040110
+juniorlirahstjj@gmail.com:Jr140690@ | CPF = 41585714801 | MAX = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | UNIVERSAL = Ativar | GLOBO PLAY = Ativo
+30512955824:Dani3981@ | CPF = 30512955824 | GLOBO PLAY = Ativo
+c_edu_1@hotmail.com:Carlos08nov1975 | CPF = 01167636635 | PREMIERE = Ativo | GLOBO PLAY = Ativo
+festifudi@gmail.com:Gui01059301 | CPF = 14610446774 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+20217535739:24020241Ga@ | CPF = 20217535739 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+06000633645:88118452aA | CPF = 06000633645
+43163769772:flusao06 | CPF = 43163769772 | TELECINE = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+96251115653:patricia2sim | CPF = 96251115653 | DISNEY = Ativo | NETFLIX = Ativo | GLOBO PLAY = Ativo
+90675878772:Helena147he# | CPF = 90675878772 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+katramontina@hotmail.com:Krt112712@ | CPF = 58898700091 | GLOBO PLAY = Ativar | CLARO VIDEO = Ativo
+financeiro@associacaomma.org.br:Mma2023* | CPF = 25263242000107
+lchimenti:Dxx44009576 | CPF = 03253353893 | GLOBO PLAY = Ativo
+luiz.leduardo@gmail.com:@Lems1962$ | CPF = 23509015304 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo
+edurocha216@gmail.com:224488Eriane* | CPF = 83853456200 | GLOBO PLAY = Ativar
+thalia_lima14@hotmail.com:Th@li@2010 | CPF = 03119772275 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+08844730820:Marcileia1 | CPF = 08844730820 | GLOBO PLAY = Ativo
+rene.bernardi:Re21449583 | CPF = 31761240900 | MAX = Ativo | NETFLIX = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo | HBO ELETRONICOS = Ativo
+36069803884:@04B2dfa2 | CPF = 36069803884
+00075375737:26pj2jgi | CPF = 00075375737 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PREMIERE = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+rafaelcarneirocouto@gmail.com:Claroluci30 | CPF = 00592037142 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+65592933000160:Mudanca2020 | CPF = 65592933000160
+fco.andersonsl@gmail.com:@1n4d5r00 | CPF = 65981464372 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+clarissefranco:clacla210536 | CPF = 32866682734 | MAX = Ativar | DISNEY = Ativar | APPLE TV = Ativar | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+80565204734:HOje3086@@ | CPF = 80565204734 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+00110989104:amelie1985 | CPF = 00110989104 | GLOBO PLAY = Ativo
+41374654876:Gninut23 | CPF = 41374654876 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+riva.anjos:antro0521 | CPF = 82806020620 | GLOBO PLAY = Ativo
+09665564889:g3u6j5g3 | CPF = 09665564889 | DISNEY = Ativo | NETFLIX = Ativo | GLOBO PLAY = Ativo
+giev1913:giev191397 | CPF = 27841930801 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+00852802838:Sakira2024 | CPF = 00852802838 | GLOBO PLAY = Ativo
+binhobil:neguinhosfv2205 | CPF = 63968703049
+05208776758:120104Sa | CPF = 05208776758 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+29722180860:Av151080 | CPF = 29722180860 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+84684186253:Ithan1310 | CPF = 84684186253 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+08445414780:Claro001* | CPF = 08445414780 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | COMBATE = Ativo | UNIVERSAL = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo
+pedrosanchezsass@gmail.com:diaFeliz1352 | CPF = 42889180816 | GLOBO PLAY = Ativo
+pa330486@gmail.com:788589@Cm | CPF = 03877195806 | GLOBO PLAY = Ativo
+yoshuahu@hotmail.com:mattei13 | CPF = 06335347903 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | TELECINE = Ativo | PREMIERE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo | HBO ELETRONICOS = Ativo
+39088617805:A759bg7thiago@ | CPF = 39088617805 | CLARO VIDEO = Ativo
+cecilia_sant:A779b55** | CPF = 13352621802 | GLOBO PLAY = Ativo
+07521684443:yolanda21 | CPF = 07521684443 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+05121960:Superman5@ | CPF = 26860104104 | GLOBO PLAY = Ativo
+93228350959:Aquela321 | CPF = 93228350959 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+fernando.olmi@gmail.com:fao197927 | CPF = 08668409743 | GLOBO PLAY = Ativo
+53656571104:@#$9790661Elt | CPF = 53656571104 | MAX = Ativo | GLOBO PLAY = Ativo
+alvaro.vereda@gmail.com:Cumbuca1 | CPF = 97213667734 | DISNEY = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+33577983876:jehclaro86 | CPF = 33577983876
+03839364205:J@ugusto1217 | CPF = 03839364205 | MAX = Ativar | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo
+00572486723:docwillys29@ | CPF = 00572486723 | GLOBO PLAY = Ativo
+carlos.rebelo@terra.com.br:z7x2v8k9 | CPF = 04090729823 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo
+61815667400:Edy50502020 | CPF = 61815667400 | GLOBO PLAY = Ativo
+22972452895:@Augusta1987 | CPF = 22972452895 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+00788997459:leticia10 | CPF = 00788997459 | GLOBO PLAY = Ativo
+Elenilda13@yahoo.com.br:1010lena | CPF = 17839921825 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+sandra_vanzelli@hotmail.com:srv250492 | CPF = 09547287850 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+andrelobao@hotmail.com:P@ndora2 | CPF = 92433286549 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+16353185723:912079MyLove@ | CPF = 16353185723 | GLOBO PLAY = Ativar | CLARO VIDEO = Ativo
+izazuca:Iza060648 | CPF = 27322257898 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+06499592994:miria006 | CPF = 06499592994 | GLOBO PLAY = Ativo
+andre.psilva:celinha72 | CPF = 51668017172 | GLOBO PLAY = Ativo
+j.p.miranda14@gmail.com:Jujo0416 | CPF = 05316160452 | MAX = Ativar | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativar
+agdagianeazevedo@hotmail.com:gabi2702 | CPF = 11090661000171 | TELECINE = Ativo | UNIVERSAL = Ativo
+16728860746:Eldorado@3074 | CPF = 16728860746 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+06172007777:clarochata1 | CPF = 06172007777 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+pizack:bolaca | CPF = 29740529836 | MAX = Ativo | TVVAS = Ativo | NETFLIX = Ativo | TELECINE = Ativo | COMBATE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+06031055643:192534Claro | CPF = 06031055643
+junior_halflore@hotmail.com:claro001 | CPF = 30422782000118
+gabriel_s@live.fr:Luiz@2422 | CPF = 03802180119 | MAX = Ativo | DISNEY = Ativo | PREMIERE = Ativo | UNIVERSAL = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo
+78890608404:Rafael@32380827 | CPF = 78890608404 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+zilmapessoa:Zilma1960 | CPF = 68904495172 | GLOBO PLAY = Ativo
+40582264200:neell11K | CPF = 40582264200 | MAX = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+alessandrokarl@gmail.com:gsigti01 | CPF = 07141288724 | DISNEY = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativar
+26667325846:#Jpsm2109 | CPF = 26667325846 | GLOBO PLAY = Ativar | CLARO VIDEO = Ativo
+mayqchon:M@nstein2507 | CPF = 07586940916 | GLOBO PLAY = Ativar | CLARO VIDEO = Ativo
+16233392861:19022008Caio$$_ | CPF = 16233392861 | NETFLIX = Ativo | TELECINE = Ativo | UNIVERSAL = Ativar | GLOBO PLAY = Ativo
+04487421012:Queroqueijo98 | CPF = 04487421012 | MAX = Ativo | DISNEY = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+PHILIPE.SAANTOS@GMAIL.COM:a1m2o3r19 | CPF = 06809428585
+ideiasservicos:M@ridao2015 | CPF = 14909399895 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+26319245840:Alvarez48$ | CPF = 26319245840 | NETFLIX = Ativo | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+01656744317:matbeka29 | CPF = 01656744317 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+fab200334@gmail.com:Vuvuzela@01 | CPF = 29608434874 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+35936883876:Rnt913755 | CPF = 35936883876
+07299352729:lippelica09@ | CPF = 07299352729 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+amota000:zecabaru2 | CPF = 15091970100 | MAX = Ativo | TVVAS = Ativo | PREMIERE = Ativo | UNIVERSAL = Ativar | PARAMOUNT = Ativo | GLOBO PLAY = Ativo
+bruno_mielke1@hotmail.com:H0ffm@nn001997 | CPF = 03721844050 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+silvioff:Mat00264619 | CPF = 31078176434 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+Leandrommteles@hotmail.com:le071622 | CPF = 05807842669 | MAX = Ativar | DISNEY = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo
+46486108819:freestep741 | CPF = 46486108819 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+weslleybarbosa.:Porramerd@2 | CPF = 32764470000118
+46025887861:adidas11 | CPF = 46025887861 | MAX = Ativo | DISNEY = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+Leandrommteles:le071622 | CPF = 05807842669 | MAX = Ativar | DISNEY = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo
+09146856862:Lu@881087 | CPF = 09146856862 | MAX = Ativar | NETFLIX = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativar
+raiduartejales:Dragonite.13 | CPF = 14136455771 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+luiz.candiota@terra.com.br:074498Lf | CPF = 00911259791 | GLOBO PLAY = Ativo
+00461301520:975@Matheus | CPF = 00461301520 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+99541866891:D21m01wil* | CPF = 99541866891 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+carlinhosdagavea@gmail.com:Carlos427 | CPF = 00613813731 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+12170707883:Real@@5056 | CPF = 12170707883 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+breno800pb@gmail.com:brenao10 | CPF = 24792774888 | GLOBO PLAY = Ativo
+paulolustosa22@gmail.com:Lela2591 | CPF = 00044512368 | MAX = Ativo | TVVAS = Ativo | DISNEY = Ativo | TELECINE = Ativo | PREMIERE = Ativo | COMBATE = Ativo | UNIVERSAL = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo | CAMPEONATO CARIOCA = Ativo
+cristiane.san1979@gmail.com:240599@cris | CPF = 28052963893 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+silvioff:Mat00264619 | CPF = 31078176434 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+12884748814:Se20051970 | CPF = 12884748814 | DISNEY = Ativo | UNIVERSAL = Ativar | GLOBO PLAY = Ativo
+marcosdu:Duarte02 | CPF = 18553460797 | PREMIERE = Ativo | GLOBO PLAY = Ativo
+diogeveira@yahoo.com.br:cas@7011 | CPF = 55509584653 | MAX = Ativo | TVVAS = Ativo | DISNEY = Ativo | NETFLIX = Ativo | TELECINE = Ativo | PREMIERE = Ativo | COMBATE = Ativo | UNIVERSAL = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo
+33561521819:Marina19 | CPF = 33561521819 | DISNEY = Ativo | NETFLIX = Ativo | GLOBO PLAY = Ativar
+07325749783:Luc@s2010 | CPF = 07325749783 | NETFLIX = Ativo | PREMIERE = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+marcelamidori:egrppw18 | CPF = 15162877620 | MAX = Ativo | GLOBO PLAY = Ativo
+amota000:zecabaru2 | CPF = 15091970100 | MAX = Ativo | TVVAS = Ativo | PREMIERE = Ativo | UNIVERSAL = Ativar | PARAMOUNT = Ativo | GLOBO PLAY = Ativo
+alexandreouroverde@gmail.com:casa2350 | CPF = 02369065770 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+07529378988:sa@@607226 | CPF = 07529378988 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+andressa-10-mel@hotmail.com:Herondale6 | CPF = 44693115886 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+rjannuzzi@yahoo.com.br:caio0207 | CPF = 01677941758 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo
+frausstein@yahoo.com.br:271713Br | CPF = 40481808949 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+evertonwendtti@gmail.com:pazeluz70 | CPF = 21730792049 | GLOBO PLAY = Ativo
+27537434875:F11c04c78* | CPF = 27537434875 | GLOBO PLAY = Ativo
+00164863826:Gege0202 | CPF = 00164863826 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+30507351800:ola80re72 | CPF = 30507351800 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+marciocastro2003@hotmail.com:marcio2003 | CPF = 37721035880
+thaizenovais@yahoo.com.br:Alice2501 | CPF = 34965322894 | DISNEY = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+29818678818:CARmar2086 | CPF = 29818678818 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+carlos.rebelo@terra.com.br:z7x2v8k9 | CPF = 04090729823 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo
+90253698804:Di100986 | CPF = 90253698804 | TVVAS = Ativo | DISNEY = Ativo | NETFLIX = Ativo | GLOBO PLAY = Ativo
+05263770707:Beta@2022d | CPF = 05263770707
+raphael_cruz:Rcm3855070@ | CPF = 12071088719 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+00054155193:Partiumermao74 | CPF = 00054155193 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+ericaeduardaerik@outlook.com:13270930Er | CPF = 36294790816 | GLOBO PLAY = Ativo
+38986540100:Clarogam@61 | CPF = 38986540100 | GLOBO PLAY = Ativar
+85marcia:Marcia85 | CPF = 86532146234 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+04502572071:Chezini@1509 | CPF = 04502572071 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+11183811810:Pai230256 | CPF = 11183811810 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+05909949802:Yassmin1 | CPF = 05909949802 | MAX = Ativar | DISNEY = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo
+08384047740:wild127net526 | CPF = 08384047740 | GLOBO PLAY = Ativo
+alessandrokarl@gmail.com:gsigti01 | CPF = 07141288724 | DISNEY = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativar
+87474182149:Mr@130577 | CPF = 87474182149 | GLOBO PLAY = Ativo
+sisleinenet:Ax-102030 | CPF = 08333962858 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+31048456897:Claro_152535 | CPF = 31048456897 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+10711854700:Jv335473* | CPF = 10711854700 | GLOBO PLAY = Ativo
+anchietaisabela@gmail.com:Mortandela1 | CPF = 05799208102 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+leiziane_noronha@hotmail.com:praia28bela | CPF = 05486457448 | GLOBO PLAY = Ativo
+Reumatica:Reumatica123 | CPF = 77541340200 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+zelinda_am@yahoo.com.br:yasmin1607 | CPF = 41329228200 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | TELECINE = Ativo | APPLE TV = Ativo | PREMIERE = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativar
+agdagianeazevedo@hotmail.com:gabi2702 | CPF = 11090661000171 | TELECINE = Ativo | UNIVERSAL = Ativo
+99325705672:eva385385 | CPF = 99325705672 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+manoelspaiva:Marramce57 | CPF = 43244742734 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+42915376700:cecilia030940 | CPF = 42915376700 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | TELECINE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo | HBO ELETRONICOS = Ativo
+junior_halflore@hotmail.com:claro001 | CPF = 30422782000118
+luiza.santos@datafolha.com.br:Setembro08 | CPF = 08765621875 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+08445414780:Claro001* | CPF = 08445414780 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | COMBATE = Ativo | UNIVERSAL = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo
+tarcillacordeiro:Marina1608 | CPF = 35354887704 | MAX = Ativo | NETFLIX = Ativo | TELECINE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo | HBO ELETRONICOS = Ativo
+67187722753:Eunicea1809 | CPF = 67187722753 | CLARO VIDEO = Ativo
+00513855890:niofox12 | CPF = 00513855890 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+07237015710:LizCaioLuna2021 | CPF = 07237015710 | GLOBO PLAY = Ativo
+69469873734:Macon1960 | CPF = 69469873734 | MAX = Ativo | TVVAS = Ativo | DISNEY = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | COMBATE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativar
+amanda_meirinhos@hotmail.com:Gae242102 | CPF = 14301371850 | MAX = Ativo | TELECINE = Ativo | UNIVERSAL = Ativar | GLOBO PLAY = Ativo | HBO ELETRONICOS = Ativo
+04257490535:@Gimeniz7 | CPF = 04257490535 | GLOBO PLAY = Ativo
+04556877229:ds530147 | CPF = 04556877229 | GLOBO PLAY = Ativo
+31858792878:#251029Rafaela | CPF = 31858792878 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+05625088640:PdMg@1980 | CPF = 05625088640 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+77406036191:121618su | CPF = 77406036191 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | GLOBO PLAY = Ativo
+Juniorlirahstjj@gmail.com:Jr140690@ | CPF = 41585714801 | MAX = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | UNIVERSAL = Ativar | GLOBO PLAY = Ativo
+joi_ely:Secreta28 | CPF = 96161604353 | GLOBO PLAY = Ativo
+04027784804:@Annaylo63 | CPF = 04027784804 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+arnaldo.mrodrigues@yahoo.com.br:Pelopes88 | CPF = 13612774832 | MAX = Ativo | GLOBO PLAY = Ativar
+36586920817:C@rlos2015 | CPF = 36586920817 | GLOBO PLAY = Ativo
+85562238691:Jm032007 | CPF = 85562238691 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+eduardo.monari:edu010300 | CPF = 24834190030 | TELECINE = Ativo | PREMIERE = Ativo | COMBATE = Ativo | UNIVERSAL = Ativar | PARAMOUNT = Ativo | GLOBO PLAY = Ativar
+domcortez16@gmail.com:clarodom158047 | CPF = 05726329406 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+13376141819:Xande013@ | CPF = 13376141819 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+62768956791:Aeroporto1960 | CPF = 62768956791 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+clarissefranco:clacla210536 | CPF = 32866682734 | MAX = Ativo | DISNEY = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+31640691898:27022017Tj$ | CPF = 31640691898 | MAX = Ativo | DISNEY = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativar
+21740831837:Erne1949 | CPF = 21740831837 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+Lucas.bazilio91@gmail.com:199177Lcs | CPF = 38407520861 | DISNEY = Ativo | NETFLIX = Ativo | GLOBO PLAY = Ativo
+aelton.asssis:Bruna@2013 | CPF = 11901477851 | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+brunarconi:Monteiro010@ | CPF = 06842626730 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+29368040869:152436eU | CPF = 29368040869 | GLOBO PLAY = Ativo
+Borgesmauri:Borgespedro2 | CPF = 36552380968
+carlos.rebelo@terra.com.br:z7x2v8k9 | CPF = 04090729823 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo
+08123143877:arkanist12 | CPF = 08123143877 | GLOBO PLAY = Ativo
+eid.e.nanda@gmail.com:12Chuva12# | CPF = 01368715184 | UNIVERSAL = Ativar | GLOBO PLAY = Ativo
+07083166706:Apn@220676 | CPF = 07083166706 | GLOBO PLAY = Ativo
+marciomontserrat@marciomontserrat.com.br:Botafogo10 | CPF = 34714421700 | MAX = Ativo | GLOBO PLAY = Ativo
+07529831992:gunsnroses387 | CPF = 07529831992 | GLOBO PLAY = Ativo
+casameireles:Nice1974 | CPF = 67807674253 | GLOBO PLAY = Ativar
+stefanogbr:fine22 | CPF = 00428949649 | UNIVERSAL = Ativar | GLOBO PLAY = Ativar
+10363285709:Mestre258 | CPF = 10363285709 | GLOBO PLAY = Ativo
+Borgesmauri:Borgespedro2 | CPF = 36552380968
+narciso16:Ga16071998 | CPF = 05346723889 | GLOBO PLAY = Ativo
+isacliborio04@gmail.com:Newton1516 | CPF = 23775889809 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+arnaldo.mrodrigues@yahoo.com.br:Pelopes88 | CPF = 13612774832 | MAX = Ativo | GLOBO PLAY = Ativar
+kidvanballa:S1a3n5r7 | CPF = 09537907899 | MAX = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo | HBO ELETRONICOS = Ativo
+karlaabreubarroso@gmail.com:Karla0918 | CPF = 40068668791 | PREMIERE = Ativo | GLOBO PLAY = Ativo
+76879208134:Jmr1393# | CPF = 76879208134 | GLOBO PLAY = Ativo
+alvaro.vereda@gmail.com:Cumbuca1 | CPF = 97213667734 | DISNEY = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+wilmafs:S061439w | CPF = 30780209753 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo | HBO ELETRONICOS = Ativo
+24516422700:Braga2021 | CPF = 24516422700 | NETFLIX = Ativo | GLOBO PLAY = Ativar
+02303922887:udhz0zo2 | CPF = 02303922887 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+17285645818:Casa495495495 | CPF = 17285645818 | NETFLIX = Ativo | CLARO VIDEO = Ativo
+mariarangel:Snowdog60@ | CPF = 86948768768 | MAX = Ativar | NETFLIX = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo
+45089413894:Audio$lav33 | CPF = 45089413894 | GLOBO PLAY = Ativo
+74398105620:LaikaGra05** | CPF = 74398105620 | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+bangalodecora@gmail.com:Ba32@984 | CPF = 32984774000190
+katyannes:Kaka1974 | CPF = 02434258484 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo
+62768956791:Aeroporto1960 | CPF = 62768956791 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+31261002873:@Qa30135326 | CPF = 31261002873 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+02023268109:Rizzia30@ | CPF = 02023268109 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+leticiadosereno@gmail.com:02021920Peia* | CPF = 11919505733
+raimundosantos75@hotmail.com:psico2@2@ | CPF = 37597132000152
+04438449332:Hd@2ou12 | CPF = 04438449332 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+vilma.21@ig.com.br:Sevilha94 | CPF = 07625303837 | TVVAS = Ativo | GLOBO PLAY = Ativar
+fafabrubru:Fa131313 | CPF = 46653040763 | GLOBO PLAY = Ativo
+87274094149:cDe#xsw2 | CPF = 87274094149 | MAX = Ativo | GLOBO PLAY = Ativo
+47034897832:almeida12 | CPF = 47034897832 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+klorenzatto:086240Vik | CPF = 86964801634 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+dr.lusalles@uol.com.br:lu336917 | CPF = 61249734053 | GLOBO PLAY = Ativo
+13074610506:Ma28122001 | CPF = 13074610506 | DISNEY = Ativo | PREMIERE = Ativo | UNIVERSAL = Ativar | GLOBO PLAY = Ativo
+30095914897:Al3x@ndr3 | CPF = 30095914897 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+56391536520:Davi2007 | CPF = 56391536520 | PREMIERE = Ativo | GLOBO PLAY = Ativo
+brunarconi:Monteiro010@ | CPF = 06842626730 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+andreiavfj@bol.com.br:allan04kaique21 | CPF = 24687644805 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+08379504909:S@90310130s | CPF = 08379504909 | GLOBO PLAY = Ativo
+matiasgisa@gmail.com:Lo2gian6 | CPF = 18268017821 | GLOBO PLAY = Ativo
+pizack:bolaca | CPF = 29740529836 | MAX = Ativo | TVVAS = Ativo | NETFLIX = Ativo | TELECINE = Ativo | COMBATE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+Humbertoellery67:Rodrigo2000 | CPF = 41950534553 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | TELECINE = Ativo | APPLE TV = Ativo | PREMIERE = Ativo | UNIVERSAL = Ativar | GLOBO PLAY = Ativo | CAMPEONATO CARIOCA = Ativo
+16129399707:32551401aA@ | CPF = 16129399707 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+frausstein@yahoo.com.br:271713Br | CPF = 40481808949 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+lejesus10:Anhembi@2022 | CPF = 33306620858 | GLOBO PLAY = Ativo
+bayerpoa:105252 | CPF = 21161526072 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+35214524846:Maka@1984 | CPF = 35214524846 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+40244466904:st201070 | CPF = 40244466904 | GLOBO PLAY = Ativo
+06133084502:Clayton1905162101 | CPF = 06133084502 | GLOBO PLAY = Ativo
+rogerio.viana2010@gmail.com:lima1803 | CPF = 03733962109 | GLOBO PLAY = Ativo
+gersimonsantos:Gersyesilma73 | CPF = 54912687120 | GLOBO PLAY = Ativo
+10711854700:Jv335473* | CPF = 10711854700 | GLOBO PLAY = Ativo
+09328444721:An810305 | CPF = 09328444721 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PREMIERE = Ativo | COMBATE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+08239845754:Nisinha80@ | CPF = 08239845754 | MAX = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+giev1913:giev191397 | CPF = 27841930801 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+alessandrokarl@gmail.com:gsigti01 | CPF = 07141288724 | DISNEY = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativar
+01284738272:Arta2024 | CPF = 01284738272 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+Lucas.bazilio91@gmail.com:199177Lcs | CPF = 38407520861 | DISNEY = Ativo | NETFLIX = Ativo | GLOBO PLAY = Ativo
+ayllabeatriz442@gmail.com:Z115344a@ | CPF = 46203873802 | MAX = Ativo | DISNEY = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+alemelo2007@gmail.com:152069@Ale | CPF = 27830449864 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+22173260820:Susi221207@ | CPF = 22173260820 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+valdemarneves:010Fq859jq2@ | CPF = 11981729836 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo
+21811098851:Giamerica08$ | CPF = 21811098851 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+netobaterista@hotmail.com:neto8233 | CPF = 43549923880 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+01284738272:Arta2024 | CPF = 01284738272 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+jaquelaineps@gmail.com:013579Jaque* | CPF = 06309010905
+taynaasaraah@gmail.com:110819988Ta@ | CPF = 47587386882 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+Luciano21mg:Lu14061985# | CPF = 08494144669 | TELECINE = Ativo | PREMIERE = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+04487421012:Queroqueijo98 | CPF = 04487421012 | MAX = Ativo | DISNEY = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+99409860920:Hinca02# | CPF = 99409860920 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+14354420163:fpba2002 | CPF = 14354420163 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+alvaro.vereda@gmail.com:Cumbuca1 | CPF = 97213667734 | DISNEY = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+lchimenti:Dxx44009576 | CPF = 03253353893 | GLOBO PLAY = Ativo
+05934511807:r030763z | CPF = 05934511807 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+Leandrommteles:le071622 | CPF = 05807842669 | MAX = Ativar | DISNEY = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo
+As767783@gmail.com:Valentina1! | CPF = 35554492819 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+31285956826:lucyvaz9893 | CPF = 31285956826 | DISNEY = Ativo | NETFLIX = Ativo | GLOBO PLAY = Ativo
+02716353123:thor*1166 | CPF = 02716353123 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+marcelamidori:egrppw18 | CPF = 15162877620 | MAX = Ativo | GLOBO PLAY = Ativo
+deboralacerdas@hotmail.com:Debora02 | CPF = 42866464168 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+kidvanballa:S1a3n5r7 | CPF = 09537907899 | MAX = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo | HBO ELETRONICOS = Ativo
+07807157488:Fg@@2020 | CPF = 07807157488 | GLOBO PLAY = Ativo
+Iaposimplicio:Iapo19 | CPF = 28043863334 | GLOBO PLAY = Ativo
+06098023727:atharv090603 | CPF = 06098023727 | NETFLIX = Ativo | GLOBO PLAY = Ativar
+anchietaisabela@gmail.com:Mortandela1 | CPF = 05799208102 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+pmontanha:PM3uolclaro | CPF = 34948481572 | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+felipecacau:47487981Fe | CPF = 25335600810 | NETFLIX = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+alemelo2007@gmail.com:152069@Ale | CPF = 27830449864 | NETFLIX = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+52459276753:231198pa | CPF = 52459276753 | DISNEY = Ativo | GLOBO PLAY = Ativo
+penha@hotmail.com.br:Lp@050782 | CPF = 53488571904 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+ifuentes@terra.com.br:Teclado1@ | CPF = 60026981327 | GLOBO PLAY = Ativo
+rmaranha123@hotmail.com:Vermelh0@ | CPF = 22189157668 | GLOBO PLAY = Ativo
+08716422716:Bgg594913@ | CPF = 08716422716 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+kin.kaio.cg@gmail.com:232572Kaio | CPF = 09059078683
+34513554851:100487Lipe | CPF = 34513554851 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+69620571568:250946Sil | CPF = 69620571568 | DISNEY = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+leticiadosereno@gmail.com:02021920Peia* | CPF = 11919505733
+38675579187:Iedaaparecida_66 | CPF = 38675579187 | DISNEY = Ativo | NETFLIX = Ativo | GLOBO PLAY = Ativo
+22952360880:186927cc | CPF = 22952360880 | DISNEY = Ativo | NETFLIX = Ativo | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+06382533220:Josue@12 | CPF = 06382533220
+ronaldoqueiroga:@@Rsq1986@@ | CPF = 33831355860 | GLOBO PLAY = Ativo
+34853189220:Su@160570 | CPF = 34853189220 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+03393731645:ANDRE010712rapini | CPF = 03393731645 | NETFLIX = Ativo | GLOBO PLAY = Ativar
+sandrafsantos.pe@hotmail.com:Chica@#1 | CPF = 03076397460 | GLOBO PLAY = Ativo
+jonasvianna@gmail.com:3LauO3@net | CPF = 02208699793 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+57885729168:marialu10 | CPF = 57885729168 | GLOBO PLAY = Ativo
+condominioboulevard:805307 | CPF = 05894721000106 | TVVAS = Ativo | PREMIERE = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo
+casameireles:Nice1974 | CPF = 67807674253 | GLOBO PLAY = Ativar
+varellar@gmail.com:verocA00 | CPF = 83765310778 | PREMIERE = Ativo | GLOBO PLAY = Ativo
+jefinacio:jefsil90 | CPF = 62188461991 | GLOBO PLAY = Ativar
+15520379831:Rezistro@10 | CPF = 15520379831 | NETFLIX = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+ricardopausini@yahoo.com.br:r87408593 | CPF = 03771842689
+mariacasagrandem@gmail.com:casagrande92 | CPF = 03308526042 | GLOBO PLAY = Ativo
+03839364205:J@ugusto1217 | CPF = 03839364205 | MAX = Ativar | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo
+85151009915:lokobemloko23 | CPF = 85151009915 | DISNEY = Ativo | NETFLIX = Ativo | GLOBO PLAY = Ativar | CLARO VIDEO = Ativo
+66688914700:Cvpoliveira1 | CPF = 66688914700 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+29893756863:valdivia00 | CPF = 29893756863 | DISNEY = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+05539314158:Gilvando1 | CPF = 05539314158 | GLOBO PLAY = Ativo
+04979525644:Dudu1996* | CPF = 04979525644 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+94897433800:Ykp901** | CPF = 94897433800 | GLOBO PLAY = Ativo
+40994108893:Bia020411Isa | CPF = 40994108893 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+33781451453:Gol102545 | CPF = 33781451453 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+cheldontk@gmail.com:M1l35t0n3 | CPF = 06868130490 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+02840847353:anjoanjo1 | CPF = 02840847353 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PREMIERE = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+11972845910:Ohana2003 | CPF = 46759091833 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+03537135971:zvkvth0404 | CPF = 03537135971 | DISNEY = Ativo | NETFLIX = Ativo | GLOBO PLAY = Ativo
+tche_ita:C@d714inf | CPF = 49906909749 | GLOBO PLAY = Ativo
+leandrommteles@hotmail.com:le071622 | CPF = 05807842669 | MAX = Ativar | DISNEY = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo
+03816460763:@Elvira1 | CPF = 03816460763 | GLOBO PLAY = Ativo
+rodriguesp@msn.com:1nderC0v3r | CPF = 03418418899 | GLOBO PLAY = Ativar
+leoxinho.junior@hotmail.com:@SeGama05 | CPF = 02954930110 | GLOBO PLAY = Ativo
+condominioboulevard:805307 | CPF = 05894721000106 | TVVAS = Ativo | PREMIERE = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo
+camila.luckmann@gmail.com:aCtmRzi3 | CPF = 00388717939 | GLOBO PLAY = Ativo
+klorenzatto:086240Vik | CPF = 86964801634 | GLOBO PLAY = Ativo
+bruno_mielke1@hotmail.com:H0ffm@nn001997 | CPF = 03721844050 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+04519258154:Jp@92816799 | CPF = 04519258154 | CLARO VIDEO = Ativo
+33719431860:Am30100369 | CPF = 33719431860 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+kleitonq@gmail.com:k39656993 | CPF = 92456804104 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+65137663972:Mb912174 | CPF = 65137663972 | GLOBO PLAY = Ativo
+08816561866:021267 | CPF = 08816561866 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+vjunior@tce.sp.gov.br:cl120665 | CPF = 09485307829 | MAX = Ativo
+gessi0505@gmail.com:golf3788 | CPF = 42884756191 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+marceloluis122@gmail.com:@Ar071215 | CPF = 03791435000 | GLOBO PLAY = Ativo
+lfmarson:julia@0648 | CPF = 29097580870 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+marceleza02@yahoo.com.br:nicolas10 | CPF = 14687109829 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+46025887861:adidas11 | CPF = 46025887861 | MAX = Ativo | DISNEY = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+petra_jr@hotmail.com:Opj@7522 | CPF = 18068924809 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+01579508243:29002211Am | CPF = 01579508243 | GLOBO PLAY = Ativo
+80565204734:HOje3086@@ | CPF = 80565204734 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+03936741344:Mnm232323@ | CPF = 03936741344 | GLOBO PLAY = Ativo
+69620571568:250946Sil | CPF = 69620571568 | DISNEY = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+22067288857:gazz1909 | CPF = 22067288857 | MAX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+Carlos.mark.nik@gmail.com:Nicolas27032008 | CPF = 09167508847 | NETFLIX = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativar
+dr.danielcrespo@hotmail.com:crf871027 | CPF = 11781207755 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+95000992091:cotoco2014 | CPF = 95000992091 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo
+dinizle23@gmail.com:Jose1363 | CPF = 00636550630 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+33990319809:an@B290509 | CPF = 33990319809 | GLOBO PLAY = Ativo
+manuellemes2@gmail.com:madara23 | CPF = 03751374086 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+admcrepecaffe@gmail.com:Crepe@22 | CPF = 80563813172 | GLOBO PLAY = Ativo
+Luciano21mg:Lu14061985# | CPF = 08494144669 | TELECINE = Ativo | PREMIERE = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+09634876803:Dalias=21 | CPF = 09634876803 | MAX = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+giev1913:giev191397 | CPF = 27841930801 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+03936741344:Mnm232323@ | CPF = 03936741344 | GLOBO PLAY = Ativo
+andreasweber2009@hotmail.com:bugatti20 | CPF = 20059159987 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+12069733823:m@217171 | CPF = 12069733823 | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+chriscantolima@hotmail.com:Salmo91$ | CPF = 00997229764 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | PREMIERE = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+ana.lchaves:02Thalita | CPF = 19342341845 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+marcoroig@yahoo.com.br:mariana1 | CPF = 61774480034 | GLOBO PLAY = Ativo
+eduardorudderrs@hotmail.com:Rudder739 | CPF = 01596871016 | GLOBO PLAY = Ativo
+richardmaluco1984@hotmail.com:richard1712 | CPF = 06362016432 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+jefinacio:jefsil90 | CPF = 62188461991 | GLOBO PLAY = Ativar
+bangalodecora@gmail.com:Ba32@984 | CPF = 32984774000190
+sandrajvieira:Sv010203 | CPF = 62760068587 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+allxs@live.com:1Camisa* | CPF = 02564040209 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+33781451453:Gol102545 | CPF = 33781451453 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+anchietaisabela@gmail.com:Mortandela1 | CPF = 05799208102 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+paulolustosa22@gmail.com:Lela2591 | CPF = 00044512368 | MAX = Ativo | TVVAS = Ativo | DISNEY = Ativo | TELECINE = Ativo | PREMIERE = Ativo | COMBATE = Ativo | UNIVERSAL = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo | CAMPEONATO CARIOCA = Ativo
+49724517691:R@n@5318C | CPF = 49724517691 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+andrelobao@hotmail.com:P@ndora2 | CPF = 92433286549 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+20024240044:Lorenzot1 | CPF = 20024240044 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativo
+11508155747:@Guedes16673 | CPF = 11508155747 | GLOBO PLAY = Ativo
+09771759795:Lukb!kex11 | CPF = 09771759795 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+atendimento@youandus.com.br:winner996827 | CPF = 30313028850 | GLOBO PLAY = Ativo
+dr.danielcrespo@hotmail.com:crf871027 | CPF = 11781207755 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+55244084704:altare58 | CPF = 55244084704 | MAX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+lazzus@gmail.com:Lazus@103517 | CPF = 97105139587 | GLOBO PLAY = Ativar
+88196143753:Rgng-4768 | CPF = 88196143753 | GLOBO PLAY = Ativo
+93603223853:Fred#1956 | CPF = 93603223853
+augustusunb@gmail.com:a19941980A | CPF = 71579680100 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | COMBATE = Ativo | GLOBO PLAY = Ativar
+carlinhosdagavea@gmail.com:Carlos427 | CPF = 00613813731 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+02830715837:Agria1961* | CPF = 02830715837 | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+31687427836:$Claro654 | CPF = 31687427836 | MAX = Ativar | DISNEY = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo
+leoxinho.junior@hotmail.com:@SeGama05 | CPF = 02954930110 | GLOBO PLAY = Ativo
+deboralacerdas@hotmail.com:Debora02 | CPF = 42866464168 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+pedrosanchezsass@gmail.com:diaFeliz1352 | CPF = 42889180816 | GLOBO PLAY = Ativo
+07241484932:oitocara5 | CPF = 07241484932 | MAX = Ativo | DISNEY = Ativar | NETFLIX = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo
+ayllabeatriz442@gmail.com:Z115344a@ | CPF = 46203873802 | MAX = Ativo | DISNEY = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+DTRDFL:990921rdf | CPF = 13461850772 | TVVAS = Ativo | TELECINE = Ativo | UNIVERSAL = Ativar | GLOBO PLAY = Ativo
+giovannifp@hotmail.com:faisca27 | CPF = 08898980655 | GLOBO PLAY = Ativo
+marciocastro2003@hotmail.com:marcio2003 | CPF = 37721035880
+84684186253:Ithan1310 | CPF = 84684186253 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+07774901701:Kita@2014 | CPF = 07774901701 | MAX = Ativo | TVVAS = Ativo | PREMIERE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo | HBO ELETRONICOS = Ativo
+42135931691:Iannis1611 | CPF = 42135931691 | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+09660784465:Andrade4060# | CPF = 09660784465 | GLOBO PLAY = Ativo
+Lucas.bazilio91@gmail.com:199177Lcs | CPF = 38407520861 | DISNEY = Ativo | NETFLIX = Ativo | GLOBO PLAY = Ativo
+rene.bernardi:Re21449583 | CPF = 31761240900 | MAX = Ativo | NETFLIX = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo | HBO ELETRONICOS = Ativo
+bernadeteneri:Boneri53 | CPF = 09615610500 | GLOBO PLAY = Ativo
+79419658791:Claro110324 | CPF = 79419658791 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+42962073859:Apiorsenh@1 | CPF = 42962073859 | NETFLIX = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+liliantkd@outlook.com:Lilian1010 | CPF = 27220791860 | MAX = Ativo | DISNEY = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+13628676835:Cr05011971 | CPF = 13628676835 | NETFLIX = Ativo | GLOBO PLAY = Ativar
+moacirrosasantos:moacir1212 | CPF = 27659801600 | NETFLIX = Ativo | PREMIERE = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+petra_jr@hotmail.com:Opj@7522 | CPF = 18068924809 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+anmavm@gmail.com:laluhe37 | CPF = 18121527791 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativar
+andreiavfj@bol.com.br:allan04kaique21 | CPF = 24687644805 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+33536744893:Neto0307 | CPF = 33536744893 | TVVAS = Ativo | NETFLIX = Ativo | GLOBO PLAY = Ativo
+marc76:030397Pm | CPF = 12211264824 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+bruno_alyson:Familia2019 | CPF = 62914587309 | GLOBO PLAY = Ativo
+lfmarson:julia@0648 | CPF = 29097580870 | MAX = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo
+gpracadecor:maxibor1 | CPF = 10429647778 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+dinizle23@gmail.com:Jose1363 | CPF = 00636550630 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+17440084268:Mare030289 | CPF = 17440084268 | MAX = Ativo | TVVAS = Ativo | NETFLIX = Ativo | TELECINE = Ativo | APPLE TV = Ativo | COMBATE = Ativo | UNIVERSAL = Ativar | GLOBO PLAY = Ativo | HBO ELETRONICOS = Ativo
+75175444620:wr100mwr | CPF = 75175444620 | GLOBO PLAY = Ativo
+danielseguranca@yahoo.com.br:Syndi134 | CPF = 27950924845 | MAX = Ativo | DISNEY = Ativo | APPLE TV = Ativar | GLOBO PLAY = Ativo
+aelton.asssis:Bruna@2013 | CPF = 11901477851 | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+joi_ely:Secreta28 | CPF = 96161604353 | GLOBO PLAY = Ativo
+69620571568:250946Sil | CPF = 69620571568 | DISNEY = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+Mestreandre02@gmail.com:110389andre | CPF = 37444943818 | GLOBO PLAY = Ativar | CLARO VIDEO = Ativo
+30031613772:Lt45mtbfuji | CPF = 30031613772 | TVVAS = Ativo | NETFLIX = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+08052985765:INDcom15@ | CPF = 08052985765 | MAX = Ativo | TVVAS = Ativo | DISNEY = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | UNIVERSAL = Ativo | GLOBO PLAY = Ativo
+ls260752@gmail.com:Lsm99762394 | CPF = 19970928759 | GLOBO PLAY = Ativo | CLARO VIDEO = Ativo
+28109505805:Mafenandinha01 | CPF = 28109505805 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+alvaro.vereda@gmail.com:Cumbuca1 | CPF = 97213667734 | DISNEY = Ativo | NETFLIX = Ativo | PREMIERE = Ativo | GLOBO PLAY = Ativo
+29138779668:Gabi1995 | CPF = 29138779668 | NETFLIX = Ativo | PREMIERE = Ativo | UNIVERSAL = Ativar | GLOBO PLAY = Ativo
+01818157020:2721casa | CPF = 01818157020 | NETFLIX = Ativo | GLOBO PLAY = Ativo
+06192380899:Ines1964* | CPF = 06192380899 | GLOBO PLAY = Ativar
+diogeveira@yahoo.com.br:cas@7011 | CPF = 55509584653 | MAX = Ativo | TVVAS = Ativo | DISNEY = Ativo | NETFLIX = Ativo | TELECINE = Ativo | PREMIERE = Ativo | COMBATE = Ativo | UNIVERSAL = Ativo | PARAMOUNT = Ativo | GLOBO PLAY = Ativo
+marcos.politelo@gmail.com:@baxter0@ | CPF = 08766139970 | GLOBO PLAY = Ativar
+29229006068:pcop1959 | CPF = 29229006068 | GLOBO PLAY = Ativar | CLARO VIDEO = Ativo
+71169008534:Pedro1704* | CPF = 71169008534 | MAX = Ativo | NETFLIX = Ativo | APPLE TV = Ativo | GLOBO PLAY = Ativo`;
 
-            <div class="subcat-panel hidden" id="subcatPanel">
-                <div class="panel-title" id="panelTitle">📺 Itens</div>
-                <div id="subchannelContainer"></div>
-            </div>
-
-            <div class="main-content">
-                <div class="player-wrapper" id="playerWrapper">
-                    <div class="video-container" id="videoContainer">
-                        <video id="videoPlayer" crossorigin="anonymous" playsinline webkit-playsinline x5-video-player-type="h5" x5-video-orientation="landscape"></video>
-                        <div class="player-placeholder" id="playerPlaceholder">
-                            <div style="font-size:4rem;">🎬</div>
-                            <div style="font-weight:700;font-size:1.1rem;">UniTV Player</div>
-                            <div style="font-size:0.8rem;opacity:0.65;">Selecione um conteúdo</div>
-                        </div>
-                        <div class="loading-overlay hidden" id="loadingOverlay">
-                            <div class="spinner"></div>
-                        </div>
-                        <div class="resume-overlay" id="resumeOverlay">
-                            <div class="resume-dialog">
-                                <p>⏯️ Deseja continuar de onde parou?</p>
-                                <button id="resumeYes">Sim</button>
-                                <button class="resume-no" id="resumeNo">Não</button>
-                            </div>
-                        </div>
-                        <button class="ctrl-btn big-play" id="bigPlayBtn" title="Play/Pause">▶️</button>
-                        <div class="player-controls" id="playerControls">
-                            <div class="controls-top">
-                                <span class="now-playing-title">
-                                    <img class="player-logo" id="playerLogo" src="" alt="" onerror="this.style.display='none'">
-                                    <span id="nowPlayingTitle">Nenhum conteúdo</span>
-                                </span>
-                                <span class="stream-badge" id="streamBadge">● PARADO</span>
-                            </div>
-                            <div class="progress-container" id="progressContainer" style="display:none;">
-                                <div class="progress-bar-bg"></div>
-                                <div class="buffer-bar" id="bufferBar"></div>
-                                <input type="range" class="seek-bar" id="seekBar" min="0" max="100" step="0.1" value="0" tabindex="0" title="Progresso">
-                            </div>
-                            <div class="controls-bar">
-                                <button class="ctrl-btn" id="playPauseBtn" title="Play/Pause" tabindex="0">⏯️</button>
-                                <div class="volume-container">
-                                    <button class="ctrl-btn" id="muteBtn" title="Mudo" tabindex="0">🔊</button>
-                                    <input type="range" class="volume-slider" id="volumeSlider" min="0" max="1" step="0.05" value="1" title="Volume" tabindex="0">
-                                </div>
-                                <span class="time-display" id="timeDisplay">--:-- / --:--</span>
-                                <span class="spacer"></span>
-                                <button class="ctrl-btn" id="pipBtn" title="Picture-in-Picture" tabindex="0">🖼️</button>
-                                <button class="ctrl-btn" id="fullscreenBtn" title="Tela cheia" tabindex="0">⛶</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="history-backdrop" id="historyBackdrop"></div>
-    <div class="history-popup" id="historyPopup">
-        <div class="history-popup-header">
-            <span>📋 Histórico</span>
-            <div style="display:flex; align-items:center;">
-                <button class="history-clear-btn" id="historyClearBtn" title="Limpar histórico">🗑️ Limpar</button>
-                <button class="history-popup-close" id="historyClose">✖️</button>
-            </div>
-        </div>
-        <div class="history-list" id="historyList">
-            <div style="text-align:center;color:#888;padding:20px;">Nenhum histórico ainda.</div>
-        </div>
-    </div>
-
-    <script>
-        (function() {
-            const STORAGE_KEY = 'unitv_custom_servers';
-            const HISTORY_KEY = 'unitv_history';
-            const RESUME_KEY = 'unitv_resume';
-            const DEFAULT_SERVER_URL = 'http://alpha1981.top/get.php?username=mario0133&password=evfgt4qn&type=m3u_plus&output=ts';
-            const DEFAULT_SERVER_NAME = 'Alpha1981 (Padrão)';
-            const PROXY_LIST = [
-                'https://api.allorigins.win/raw?url=',
-                'https://corsproxy.io/?',
-                'https://cors-anywhere.herokuapp.com/'
-            ];
-
-            let customServers = [];
-            let currentServer = null;
-            let currentMode = 'live';
-            let allLiveChannels = [];
-            let liveCategories = [];
-            let activeCategoryId = null;
-            let allMovies = [];
-            let movieCategories = [];
-            let allSeriesList = [];
-            let seriesCategories = [];
-            let currentSeriesData = null;
-            let player = null;
-            let currentHls = null;
-            let currentPlayingUrl = null;
-            let currentPlayingLogo = '';
-            let controlsTimeout = null;
-            let isLiveStream = true;
-            let isFullscreen = false;
-            let resumeData = JSON.parse(localStorage.getItem(RESUME_KEY) || '{}');
-            let pendingResume = null;
-            let mediaSessionInitialized = false;
-
-            const serverScreen = document.getElementById('serverSelectionScreen');
-            const contentTypeScreen = document.getElementById('contentTypeSelection');
-            const serverScroll = document.getElementById('serverScroll');
-            const addServerCard = document.getElementById('addServerCard');
-            const customServerForm = document.getElementById('customServerForm');
-            const customUrl = document.getElementById('customUrl');
-            const customUser = document.getElementById('customUser');
-            const customPass = document.getElementById('customPass');
-            const customProxy = document.getElementById('customProxy');
-            const customError = document.getElementById('customError');
-            const customAddBtn = document.getElementById('customAddBtn');
-            const mainInterface = document.getElementById('mainInterface');
-            const changeServerBtn = document.getElementById('changeServerBtn');
-            const historyBtn = document.getElementById('historyBtn');
-            const mainNav = document.getElementById('mainNav');
-            const searchContainer = document.getElementById('searchContainer');
-            const searchInput = document.getElementById('searchInput');
-            const searchSuggestions = document.getElementById('searchSuggestions');
-            const categoriesListDiv = document.getElementById('categoriesList');
-            const globalStatusSpan = document.getElementById('globalStatus');
-            const subcatPanel = document.getElementById('subcatPanel');
-            const panelTitle = document.getElementById('panelTitle');
-            const subchannelContainer = document.getElementById('subchannelContainer');
-            const videoPlayer = document.getElementById('videoPlayer');
-            const videoContainer = document.getElementById('videoContainer');
-            const playerWrapper = document.getElementById('playerWrapper');
-            const playerPlaceholder = document.getElementById('playerPlaceholder');
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            const nowPlayingTitle = document.getElementById('nowPlayingTitle');
-            const playerLogo = document.getElementById('playerLogo');
-            const streamBadge = document.getElementById('streamBadge');
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('overlay');
-            const menuToggle = document.getElementById('menuToggle');
-            const playPauseBtn = document.getElementById('playPauseBtn');
-            const bigPlayBtn = document.getElementById('bigPlayBtn');
-            const muteBtn = document.getElementById('muteBtn');
-            const volumeSlider = document.getElementById('volumeSlider');
-            const timeDisplay = document.getElementById('timeDisplay');
-            const pipBtn = document.getElementById('pipBtn');
-            const fullscreenBtn = document.getElementById('fullscreenBtn');
-            const progressContainer = document.getElementById('progressContainer');
-            const seekBar = document.getElementById('seekBar');
-            const bufferBar = document.getElementById('bufferBar');
-            const historyPopup = document.getElementById('historyPopup');
-            const historyBackdrop = document.getElementById('historyBackdrop');
-            const historyList = document.getElementById('historyList');
-            const historyClose = document.getElementById('historyClose');
-            const historyClearBtn = document.getElementById('historyClearBtn');
-            const resumeOverlay = document.getElementById('resumeOverlay');
-            const resumeYes = document.getElementById('resumeYes');
-            const resumeNo = document.getElementById('resumeNo');
-
-            const escapeHtml = str => String(str || '').replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m]);
-            const setLoading = show => loadingOverlay.classList.toggle('hidden', !show);
-            const showPlaceholder = show => playerPlaceholder.classList.toggle('hidden', !show);
-
-            const setNowPlaying = (title, status, logoUrl) => {
-                nowPlayingTitle.textContent = title || 'Nenhum conteúdo';
-                streamBadge.textContent = status || '● PARADO';
-                if (logoUrl && logoUrl.startsWith('http')) {
-                    playerLogo.src = logoUrl;
-                    playerLogo.classList.add('visible');
-                } else {
-                    playerLogo.src = '';
-                    playerLogo.classList.remove('visible');
-                }
-                updateMediaSession(title, logoUrl);
-            };
-
-            function initMediaSession() {
-                if (!('mediaSession' in navigator)) return;
-                mediaSessionInitialized = true;
-                navigator.mediaSession.setActionHandler('play', () => videoPlayer.play().catch(()=>{}));
-                navigator.mediaSession.setActionHandler('pause', () => videoPlayer.pause());
-                navigator.mediaSession.setActionHandler('previoustrack', () => videoPlayer.currentTime = Math.max(0, videoPlayer.currentTime - 10));
-                navigator.mediaSession.setActionHandler('nexttrack', () => videoPlayer.currentTime = Math.min(videoPlayer.duration || Infinity, videoPlayer.currentTime + 10));
-                navigator.mediaSession.setActionHandler('seekto', (details) => { if (details.seekTime !== undefined) videoPlayer.currentTime = details.seekTime; });
-            }
-            function updateMediaSession(title, logoUrl) {
-                if (!('mediaSession' in navigator)) return;
-                if (!mediaSessionInitialized) initMediaSession();
-                navigator.mediaSession.metadata = new MediaMetadata({
-                    title: title || 'UniTV',
-                    artist: 'IPTV Player',
-                    artwork: logoUrl ? [{ src: logoUrl, sizes: '96x96', type: 'image/png' }] : []
-                });
-            }
-
-            function saveResumePosition(url, time) {
-                if (!url || time <= 0) return;
-                resumeData[url] = time;
-                localStorage.setItem(RESUME_KEY, JSON.stringify(resumeData));
-            }
-            function clearResumePosition(url) {
-                delete resumeData[url];
-                localStorage.setItem(RESUME_KEY, JSON.stringify(resumeData));
-            }
-
-            const destroyShaka = () => {
-                if (currentPlayingUrl && (currentMode === 'movies' || currentMode === 'series') && !isLiveStream && videoPlayer.currentTime > 0) {
-                    saveResumePosition(currentPlayingUrl, videoPlayer.currentTime);
-                }
-                if (player) { player.destroy(); player = null; }
-                if (currentHls) { currentHls.destroy(); currentHls = null; }
-                videoPlayer.pause();
-                videoPlayer.removeAttribute('src');
-                videoPlayer.load();
-                currentPlayingUrl = null;
-                currentPlayingLogo = '';
-                updateBigPlayBtn();
-                timeDisplay.textContent = '--:-- / --:--';
-                playerLogo.src = '';
-                playerLogo.classList.remove('visible');
-                seekBar.value = 0;
-                bufferBar.style.width = '0%';
-                progressContainer.style.display = 'none';
-                resumeOverlay.classList.remove('show');
-                pendingResume = null;
-                updateMediaSession('UniTV', '');
-            };
-
-            const closeAllMenus = () => {
-                subcatPanel.classList.add('hidden');
-                if (window.innerWidth <= 780) {
-                    sidebar.classList.remove('open');
-                    overlay.classList.remove('active');
-                }
-            };
-
-            function getHistory() { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }
-            function saveToHistory(entry) {
-                let history = getHistory();
-                history = history.filter(h => h.url !== entry.url);
-                history.unshift(entry);
-                if (history.length > 20) history = history.slice(0, 20);
-                localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-            }
-            function clearHistory() { localStorage.removeItem(HISTORY_KEY); showHistoryPopup(); }
-            function showHistoryPopup() {
-                const history = getHistory();
-                historyList.innerHTML = '';
-                if (history.length === 0) {
-                    historyList.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">Nenhum histórico ainda.</div>';
-                } else {
-                    history.forEach(entry => {
-                        const div = document.createElement('div');
-                        div.className = 'history-item';
-                        div.setAttribute('tabindex', '0');
-                        div.innerHTML = `<span class="item-icon">${entry.typeIcon || '▶️'}</span><div class="item-details"><div class="item-title">${escapeHtml(entry.title || 'Sem título')}</div><div class="item-sub">${entry.subtitle || ''}</div></div>`;
-                        div.addEventListener('click', () => {
-                            closeHistoryPopup();
-                            if (entry.mode === 'live' && currentMode !== 'live') mainNav.querySelector('[data-mode="live"]').click();
-                            else if (entry.mode === 'movies' && currentMode !== 'movies') mainNav.querySelector('[data-mode="movies"]').click();
-                            else if (entry.mode === 'series' && currentMode !== 'series') mainNav.querySelector('[data-mode="series"]').click();
-                            playStream(entry.url, entry.title, entry.logo);
-                        });
-                        div.addEventListener('keydown', (e) => { if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); div.click(); } });
-                        historyList.appendChild(div);
-                    });
-                }
-                historyPopup.classList.add('show');
-                historyBackdrop.classList.add('show');
-                setTimeout(() => {
-                    const firstItem = historyList.querySelector('.history-item');
-                    if (firstItem) firstItem.focus();
-                }, 100);
-            }
-            function closeHistoryPopup() {
-                historyPopup.classList.remove('show');
-                historyBackdrop.classList.remove('show');
-            }
-
-            historyBtn.addEventListener('click', showHistoryPopup);
-            historyClose.addEventListener('click', closeHistoryPopup);
-            historyBackdrop.addEventListener('click', closeHistoryPopup);
-            historyClearBtn.addEventListener('click', clearHistory);
-
-            function updateSearchVisibility() { searchContainer.classList.add('visible'); }
-            searchInput.addEventListener('input', () => {
-                const query = searchInput.value.trim().toLowerCase();
-                if (!query) { searchSuggestions.classList.remove('show'); return; }
-                let results = [];
-                if (currentMode === 'live') results = allLiveChannels.filter(ch => ch.name.toLowerCase().includes(query)).slice(0, 5);
-                else if (currentMode === 'movies') results = allMovies.filter(m => m.name.toLowerCase().includes(query)).slice(0, 5);
-                else if (currentMode === 'series') results = allSeriesList.filter(s => s.name.toLowerCase().includes(query)).slice(0, 5);
-                if (results.length > 0) {
-                    searchSuggestions.innerHTML = results.map(item => {
-                        const icon = currentMode === 'live' ? '📡' : (currentMode === 'movies' ? '🎬' : '📺');
-                        return `<div class="search-suggestion-item" tabindex="0" data-url="${escapeHtml(item.url || '')}" data-series-id="${item.series_id || ''}" data-name="${escapeHtml(item.name)}" data-logo="${escapeHtml(item.logo || '')}">${icon} ${escapeHtml(item.name)}</div>`;
-                    }).join('');
-                    searchSuggestions.classList.add('show');
-                } else {
-                    searchSuggestions.innerHTML = '<div style="padding:8px;color:#888;text-align:center;">Nada encontrado</div>';
-                    searchSuggestions.classList.add('show');
-                }
-            });
-            searchSuggestions.addEventListener('click', (e) => {
-                const item = e.target.closest('.search-suggestion-item');
-                if (!item) return;
-                handleSearchSelection(item);
-            });
-            searchSuggestions.addEventListener('keydown', (e) => {
-                if (e.code === 'Enter' || e.code === 'Space') {
-                    e.preventDefault();
-                    const item = e.target.closest('.search-suggestion-item');
-                    if (item) handleSearchSelection(item);
-                }
-            });
-            function handleSearchSelection(item) {
-                const name = item.dataset.name, logo = item.dataset.logo, url = item.dataset.url, seriesId = item.dataset.seriesId;
-                if (currentMode === 'live' && url) playStream(url, name, logo);
-                else if (currentMode === 'movies' && url) playStream(url, name, logo);
-                else if (currentMode === 'series' && seriesId) loadSeriesEpisodes(seriesId, name, logo);
-                searchInput.value = '';
-                searchSuggestions.classList.remove('show');
-                closeAllMenus();
-            }
-            document.addEventListener('click', (e) => { if (!searchContainer.contains(e.target)) searchSuggestions.classList.remove('show'); });
-
-            function updateBigPlayBtn() {
-                const show = videoPlayer.paused || videoPlayer.ended || !currentPlayingUrl;
-                bigPlayBtn.classList.toggle('show', show);
-                bigPlayBtn.textContent = videoPlayer.paused ? '▶️' : '⏸️';
-            }
-            function updatePlayPauseIcons() {
-                playPauseBtn.textContent = videoPlayer.paused ? '▶️' : '⏸️';
-                bigPlayBtn.textContent = videoPlayer.paused ? '▶️' : '⏸️';
-            }
-            function updateMuteIcon() {
-                muteBtn.textContent = videoPlayer.muted || videoPlayer.volume === 0 ? '🔇' : videoPlayer.volume < 0.5 ? '🔉' : '🔊';
-                volumeSlider.value = videoPlayer.muted ? 0 : videoPlayer.volume;
-            }
-            function formatTime(s) {
-                if (isNaN(s) || !isFinite(s)) return '--:--';
-                const m = Math.floor(s / 60), sec = Math.floor(s % 60);
-                return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
-            }
-            function updateTimeDisplay() {
-                if (isLiveStream && (videoPlayer.duration === Infinity || videoPlayer.duration > 36000)) {
-                    timeDisplay.textContent = `AO VIVO · ${formatTime(videoPlayer.currentTime)}`;
-                } else {
-                    timeDisplay.textContent = `${formatTime(videoPlayer.currentTime)} / ${formatTime(videoPlayer.duration)}`;
-                }
-            }
-            function updateSeekBar() {
-                if (isLiveStream || !videoPlayer.duration || videoPlayer.duration === Infinity) return;
-                const pct = (videoPlayer.currentTime / videoPlayer.duration) * 100;
-                seekBar.value = pct;
-                if (videoPlayer.buffered.length > 0) {
-                    const bufferedEnd = videoPlayer.buffered.end(videoPlayer.buffered.length - 1);
-                    const bufferPct = (bufferedEnd / videoPlayer.duration) * 100;
-                    bufferBar.style.width = bufferPct + '%';
-                }
-            }
-            function showControlsTemporarily() {
-                videoContainer.classList.add('show-controls');
-                clearTimeout(controlsTimeout);
-                controlsTimeout = setTimeout(() => {
-                    if (!videoPlayer.paused && !isFullscreen) videoContainer.classList.remove('show-controls');
-                    if (isFullscreen) controlsTimeout = setTimeout(() => { if (!videoPlayer.paused) videoContainer.classList.remove('show-controls'); }, 5000);
-                }, 3000);
-            }
-            function togglePlay() {
-                if (!currentPlayingUrl) return;
-                if (videoPlayer.paused) { videoPlayer.play().catch(()=>{}); if (!isFullscreen && window.innerWidth<=780) requestFullscreen(); }
-                else videoPlayer.pause();
-                updateBigPlayBtn(); updatePlayPauseIcons(); showControlsTemporarily();
-            }
-            async function requestFullscreen() {
-                try { if (playerWrapper.requestFullscreen) await playerWrapper.requestFullscreen(); else if (playerWrapper.webkitRequestFullscreen) await playerWrapper.webkitRequestFullscreen(); } catch {}
-            }
-            async function exitFullscreen() {
-                try { if (document.fullscreenElement) await document.exitFullscreen(); else if (document.webkitFullscreenElement) await document.webkitExitFullscreen(); } catch {}
-            }
-            async function toggleFullscreen() { if (isFullscreen) await exitFullscreen(); else await requestFullscreen(); }
-
-            videoContainer.addEventListener('mousemove', showControlsTemporarily);
-            videoContainer.addEventListener('touchstart', (e) => { if (e.target === bigPlayBtn || e.target.closest('.player-controls')) return; showControlsTemporarily(); }, {passive:true});
-            videoContainer.addEventListener('click', (e) => {
-                if (e.target.closest('.ctrl-btn') || e.target.closest('.player-controls') || e.target.closest('.loading-overlay') || e.target.closest('.resume-overlay')) return;
-                if (e.target === bigPlayBtn) { togglePlay(); return; }
-                if (currentPlayingUrl && !videoPlayer.paused) toggleFullscreen();
-                else if (currentPlayingUrl && videoPlayer.paused) togglePlay();
-                else showControlsTemporarily();
-                showControlsTemporarily();
-            });
-            videoContainer.addEventListener('dblclick', (e) => { e.preventDefault(); toggleFullscreen(); });
-            playPauseBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePlay(); });
-            bigPlayBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePlay(); });
-            muteBtn.addEventListener('click', (e) => { e.stopPropagation(); videoPlayer.muted = !videoPlayer.muted; if (!videoPlayer.muted && videoPlayer.volume===0) videoPlayer.volume=0.5; updateMuteIcon(); showControlsTemporarily(); });
-            volumeSlider.addEventListener('input', (e) => { e.stopPropagation(); videoPlayer.volume = parseFloat(volumeSlider.value); videoPlayer.muted = videoPlayer.volume===0; updateMuteIcon(); });
-            pipBtn.addEventListener('click', async (e) => { e.stopPropagation(); try { if (document.pictureInPictureElement) await document.exitPictureInPicture(); else if (document.pictureInPictureEnabled) await videoPlayer.requestPictureInPicture(); } catch {} });
-            fullscreenBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleFullscreen(); });
-            seekBar.addEventListener('input', () => {
-                if (isLiveStream || !videoPlayer.duration) return;
-                const seekTime = (seekBar.value / 100) * videoPlayer.duration;
-                videoPlayer.currentTime = seekTime;
-                timeDisplay.textContent = `${formatTime(seekTime)} / ${formatTime(videoPlayer.duration)}`;
-            });
-            document.addEventListener('fullscreenchange', () => { isFullscreen = !!document.fullscreenElement; });
-            document.addEventListener('webkitfullscreenchange', () => { isFullscreen = !!document.webkitFullscreenElement; });
-            videoPlayer.addEventListener('play', () => { updateBigPlayBtn(); updatePlayPauseIcons(); });
-            videoPlayer.addEventListener('pause', () => { updateBigPlayBtn(); updatePlayPauseIcons(); });
-            videoPlayer.addEventListener('ended', updateBigPlayBtn);
-            videoPlayer.addEventListener('volumechange', updateMuteIcon);
-            videoPlayer.addEventListener('timeupdate', () => { updateTimeDisplay(); if (!isLiveStream) updateSeekBar(); });
-            videoPlayer.addEventListener('loadedmetadata', () => {
-                isLiveStream = (videoPlayer.duration === Infinity || videoPlayer.duration > 36000);
-                if (isLiveStream) progressContainer.style.display = 'none';
-                else { progressContainer.style.display = 'block'; seekBar.max = 100; seekBar.value = 0; bufferBar.style.width = '0%'; }
-                updateTimeDisplay();
-            });
-
-            document.addEventListener('keydown', (e) => {
-                if (e.target.tagName === 'INPUT' && e.target.type === 'range') return;
-                if (e.key === 'GoBack' || e.key === 'Back' || e.keyCode === 4 || e.code === 'Escape' || e.code === 'Backspace') {
-                    if (isFullscreen) { exitFullscreen(); e.preventDefault(); return; }
-                    if (historyPopup.classList.contains('show')) { closeHistoryPopup(); e.preventDefault(); return; }
-                    if (searchSuggestions.classList.contains('show')) { searchSuggestions.classList.remove('show'); e.preventDefault(); return; }
-                    if (!subcatPanel.classList.contains('hidden')) { subcatPanel.classList.add('hidden'); activeCategoryId = null; renderCategories(currentMode==='live'?liveCategories:currentMode==='movies'?movieCategories:seriesCategories); e.preventDefault(); return; }
-                    if (mainInterface.style.display === 'block') { showServerSelection(); e.preventDefault(); return; }
-                    if (contentTypeScreen.style.display === 'flex') { showServerSelection(); e.preventDefault(); return; }
-                }
-                switch(e.code) {
-                    case 'Space': e.preventDefault(); togglePlay(); break;
-                    case 'KeyM': videoPlayer.muted = !videoPlayer.muted; updateMuteIcon(); break;
-                    case 'KeyF': toggleFullscreen(); break;
-                    case 'MediaPlayPause': e.preventDefault(); togglePlay(); break;
-                    case 'MediaPlay': e.preventDefault(); if (videoPlayer.paused) videoPlayer.play().catch(()=>{}); break;
-                    case 'MediaPause': e.preventDefault(); if (!videoPlayer.paused) videoPlayer.pause(); break;
-                    case 'MediaStop': e.preventDefault(); videoPlayer.pause(); break;
-                    case 'MediaTrackNext': e.preventDefault(); videoPlayer.currentTime = Math.min(videoPlayer.duration||Infinity, videoPlayer.currentTime+30); break;
-                    case 'MediaTrackPrevious': e.preventDefault(); videoPlayer.currentTime = Math.max(0, videoPlayer.currentTime-30); break;
-                    case 'ArrowLeft': videoPlayer.currentTime = Math.max(0, videoPlayer.currentTime-10); showControlsTemporarily(); break;
-                    case 'ArrowRight': videoPlayer.currentTime = Math.min(videoPlayer.duration||Infinity, videoPlayer.currentTime+10); showControlsTemporarily(); break;
-                    case 'ArrowUp': videoPlayer.volume = Math.min(1, videoPlayer.volume+0.05); updateMuteIcon(); showControlsTemporarily(); break;
-                    case 'ArrowDown': videoPlayer.volume = Math.max(0, videoPlayer.volume-0.05); updateMuteIcon(); showControlsTemporarily(); break;
-                }
-            });
-
-            resumeYes.addEventListener('click', () => {
-                if (!pendingResume) return;
-                const { url, title, logoUrl, savedTime } = pendingResume;
-                pendingResume = null;
-                resumeOverlay.classList.remove('show');
-                startPlayback(url, title, logoUrl, savedTime);
-            });
-            resumeYes.addEventListener('keydown', (e) => { if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); resumeYes.click(); } });
-            resumeNo.addEventListener('click', () => {
-                if (!pendingResume) return;
-                const { url, title, logoUrl } = pendingResume;
-                clearResumePosition(url);
-                pendingResume = null;
-                resumeOverlay.classList.remove('show');
-                startPlayback(url, title, logoUrl, 0);
-            });
-            resumeNo.addEventListener('keydown', (e) => { if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); resumeNo.click(); } });
-
-            function getFinalUrl(url) {
-                if (!url) return url;
-                if (currentServer && currentServer.proxy && currentServer.proxy.trim()) {
-                    const proxy = currentServer.proxy.trim();
-                    if (url.startsWith('http')) return proxy + encodeURIComponent(url);
-                    return proxy + url;
-                }
-                return url;
-            }
-
-            function startPlayback(url, title, logoUrl, seekTime) {
-                destroyShaka();
-                setLoading(true); showPlaceholder(false);
-                currentPlayingLogo = logoUrl || '';
-                setNowPlaying(title, '🟡 Conectando...', logoUrl);
-                isLiveStream = true; timeDisplay.textContent = '--:-- / --:--';
-                progressContainer.style.display = 'none';
-                const finalUrl = getFinalUrl(url);
-                currentPlayingUrl = finalUrl;
-
-                const errHandler = () => {
-                    setNowPlaying(title, '🔴 Falha', logoUrl);
-                    setLoading(false); showPlaceholder(true);
-                    destroyShaka();
-                };
-
-                function tryHlsJs() {
-                    if (Hls.isSupported()) {
-                        try {
-                            const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
-                            hls.loadSource(finalUrl);
-                            hls.attachMedia(videoPlayer);
-                            hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                                setLoading(false);
-                                setNowPlaying(title, '🟢 Reproduzindo', logoUrl);
-                                if (seekTime > 0) videoPlayer.currentTime = seekTime;
-                                videoPlayer.play().catch(()=>{});
-                                updateBigPlayBtn(); updatePlayPauseIcons();
-                            });
-                            hls.on(Hls.Events.ERROR, (_, data) => { if (data.fatal) { hls.destroy(); errHandler(); } });
-                            currentHls = hls;
-                        } catch (e) { errHandler(); }
-                    } else errHandler();
-                }
-
-                function tryNative() {
-                    videoPlayer.src = finalUrl;
-                    videoPlayer.addEventListener('loadedmetadata', () => {
-                        setLoading(false);
-                        setNowPlaying(title, '🟢 Reproduzindo', logoUrl);
-                        if (seekTime > 0) videoPlayer.currentTime = seekTime;
-                        videoPlayer.play().catch(()=>{});
-                        updateBigPlayBtn(); updatePlayPauseIcons();
-                    }, { once: true });
-                    videoPlayer.addEventListener('error', errHandler, { once: true });
-                }
-
-                const isAdaptive = /\.(m3u8|m3u|mpd)($|\?)/i.test(finalUrl) || finalUrl.includes('/master.m3u8') || finalUrl.includes('/manifest.mpd');
-
-                if (isAdaptive) {
-                    try {
-                        player = new shaka.Player(videoPlayer);
-                        player.configure({
-                            streaming: { bufferingGoal: 60, rebufferingGoal: 15, useNativeHlsOnSafari: true, alwaysStreamText: false },
-                            drm: { servers: {} }
-                        });
-                        player.addEventListener('error', (event) => {
-                            console.warn('Shaka error, fallback hls.js', event.detail);
-                            player.destroy(); player = null;
-                            tryHlsJs();
-                        });
-                        player.load(finalUrl, seekTime).then(() => {
-                            setLoading(false);
-                            setNowPlaying(title, '🟢 Reproduzindo', logoUrl);
-                            videoPlayer.play().catch(()=>{});
-                            updateBigPlayBtn(); updatePlayPauseIcons();
-                        }).catch((error) => {
-                            console.warn('Shaka load failed, fallback hls.js', error);
-                            player.destroy(); player = null;
-                            tryHlsJs();
-                        });
-                    } catch (e) { tryHlsJs(); }
-                } else {
-                    tryNative();
-                }
-                updateMuteIcon();
-            }
-
-            function playStream(url, title, logoUrl) {
-                if (currentPlayingUrl === url && !videoPlayer.paused) return;
-                if (currentPlayingUrl && (currentMode === 'movies' || currentMode === 'series') && !isLiveStream && videoPlayer.currentTime > 0) {
-                    saveResumePosition(currentPlayingUrl, videoPlayer.currentTime);
-                }
-                if (currentMode !== 'live') {
-                    const savedTime = resumeData[url];
-                    if (savedTime && savedTime > 0) {
-                        destroyShaka();
-                        setLoading(true); showPlaceholder(false);
-                        currentPlayingLogo = logoUrl || '';
-                        setNowPlaying(title, '🟡 Conectando...', logoUrl);
-                        isLiveStream = true; timeDisplay.textContent = '--:-- / --:--';
-                        progressContainer.style.display = 'none';
-                        currentPlayingUrl = getFinalUrl(url);
-                        updateMuteIcon();
-                        pendingResume = { url: currentPlayingUrl, title, logoUrl, savedTime };
-                        resumeOverlay.classList.add('show');
-                        setTimeout(() => { const btn = resumeOverlay.querySelector('button'); if (btn) btn.focus(); }, 100);
-                        return;
-                    }
-                }
-                startPlayback(url, title, logoUrl, 0);
-                let typeIcon = '📡', subtitle = 'Canal ao vivo';
-                if (currentMode === 'movies') { typeIcon = '🎬'; subtitle = 'Filme'; }
-                else if (currentMode === 'series') { typeIcon = '📺'; subtitle = 'Episódio'; }
-                saveToHistory({ type: currentMode, typeIcon, mode: currentMode, title, subtitle, url: url, logo: logoUrl, timestamp: Date.now() });
-            }
-
-            function isM3UPlaylist(url) { return /\/get\.php\?/.test(url) || /\.m3u[8]?(\?.*)?$/i.test(url); }
-            function parseM3U(text) {
-                const lines = text.split(/\r?\n/); const channels = []; let currentExtinf = '';
-                for (let line of lines) {
-                    line = line.trim();
-                    if (line.startsWith('#EXTINF:')) currentExtinf = line;
-                    else if (line && !line.startsWith('#') && currentExtinf) {
-                        const url = line;
-                        const nameMatch = currentExtinf.match(/tvg-name="([^"]*)"/);
-                        const groupMatch = currentExtinf.match(/group-title="([^"]*)"/);
-                        const logoMatch = currentExtinf.match(/tvg-logo="([^"]*)"/);
-                        const titleAfterComma = currentExtinf.split(',')[1]?.trim();
-                        channels.push({ name: nameMatch?.[1] || titleAfterComma || 'Sem nome', group: groupMatch?.[1] || 'Geral', logo: logoMatch?.[1] || '', url });
-                        currentExtinf = '';
-                    }
-                }
-                return channels;
-            }
-            async function fetchWithProxy(url, isText = false) {
-                const fetchFn = async (u) => { const r = await fetch(u); if (!r.ok) throw new Error(); return isText ? r.text() : r.json(); };
-                if (currentServer && currentServer.proxy) { try { return await fetchFn(currentServer.proxy + encodeURIComponent(url)); } catch {} }
-                try { return await fetchFn(url); } catch {}
-                for (const proxy of PROXY_LIST) { try { return await fetchFn(proxy + encodeURIComponent(url)); } catch {} }
-                throw new Error('Falha na conexão');
-            }
-            async function checkServerStatus(server) {
-                try {
-                    if (isM3UPlaylist(server.server)) { const text = await fetchWithProxy(server.server, true); return text.includes('#EXTINF'); }
-                    else { const url = `${server.server}/player_api.php?username=${server.username}&password=${server.password}&action=get_live_categories`; const data = await fetchWithProxy(url); return Array.isArray(data) || typeof data === 'object'; }
-                } catch { return false; }
-            }
-            function buildServerList() {
-                serverScroll.innerHTML = '';
-                customServers.forEach((srv, idx) => {
-                    const card = document.createElement('div'); card.className = 'server-card'; card.setAttribute('tabindex', '0');
-                    card.innerHTML = `<span class="status-dot" id="dot-${idx}"></span><div class="server-info"><div class="server-name">${escapeHtml(srv.name)}</div><div class="server-url">${escapeHtml(srv.server)}</div></div><button class="delete-server" data-idx="${idx}" title="Remover servidor">🗑️</button>`;
-                    card.querySelector('.delete-server').addEventListener('click', (e) => { e.stopPropagation(); customServers.splice(idx, 1); localStorage.setItem(STORAGE_KEY, JSON.stringify(customServers)); buildServerList(); });
-                    card.addEventListener('click', (e) => { if (e.target.closest('.delete-server')) return; selectServer(srv); });
-                    card.addEventListener('keydown', (e) => { if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); card.click(); } });
-                    serverScroll.appendChild(card);
-                    checkServerStatus(srv).then(online => { const dot = document.getElementById(`dot-${idx}`); if (dot) dot.classList.add(online ? 'online' : 'offline'); });
-                });
-            }
-            addServerCard.addEventListener('click', () => { customServerForm.style.display = customServerForm.style.display === 'flex' ? 'none' : 'flex'; if (customServerForm.style.display === 'flex') customUrl.focus(); });
-            customAddBtn.addEventListener('click', async () => {
-                const url = customUrl.value.trim();
-                if (!url) { customError.style.display='block'; customError.innerText='URL obrigatória.'; return; }
-                if (!url.startsWith('http://') && !url.startsWith('https://')) { customError.style.display='block'; customError.innerText='URL inválida.'; return; }
-                customError.style.display='none'; customAddBtn.disabled=true; customAddBtn.innerText='Verificando...';
-                const user = customUser.value.trim(), pass = customPass.value.trim(), proxy = customProxy.value.trim();
-                let hostname = ''; try { hostname = new URL(url).hostname; } catch { hostname = 'servidor'; }
-                const newServer = { name: user ? `${user}@${hostname}` : hostname, server: url, username: user, password: pass, proxy: proxy || '' };
-                const online = await checkServerStatus(newServer);
-                customAddBtn.disabled=false; customAddBtn.innerText='Adicionar e verificar';
-                if (online) { customServers.push(newServer); localStorage.setItem(STORAGE_KEY, JSON.stringify(customServers)); buildServerList(); customUrl.value=''; customUser.value=''; customPass.value=''; customProxy.value=''; customServerForm.style.display='none'; }
-                else alert('Servidor offline ou formato não reconhecido.');
-            });
-            document.querySelectorAll('.type-card').forEach(card => {
-                card.addEventListener('click', () => startMainInterface(card.dataset.mode));
-                card.addEventListener('keydown', (e) => { if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); startMainInterface(card.dataset.mode); } });
-            });
-            function startMainInterface(mode) {
-                currentMode = mode;
-                contentTypeScreen.style.display = 'none'; mainInterface.style.display = 'block';
-                mainNav.querySelectorAll('.main-nav-btn').forEach(b => b.classList.remove('active'));
-                const targetBtn = mainNav.querySelector(`[data-mode="${mode}"]`); if (targetBtn) targetBtn.classList.add('active');
-                activeCategoryId = null; subcatPanel.classList.add('hidden'); currentSeriesData = null;
-                allLiveChannels = []; liveCategories = []; allMovies = []; movieCategories = []; allSeriesList = []; seriesCategories = [];
-                destroyShaka(); showPlaceholder(true); setNowPlaying('Nenhum conteúdo', '● PARADO', '');
-                updateSearchVisibility(); loadModeData();
-                if (window.innerWidth <= 780) { sidebar.classList.remove('open'); overlay.classList.remove('active'); }
-            }
-            mainNav.querySelectorAll('.main-nav-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    if (btn.dataset.mode === currentMode) return;
-                    mainNav.querySelectorAll('.main-nav-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    currentMode = btn.dataset.mode;
-                    activeCategoryId = null; subcatPanel.classList.add('hidden'); currentSeriesData = null;
-                    updateSearchVisibility(); loadModeData();
-                });
-            });
-            async function loadModeData() {
-                if (!currentServer) return;
-                setLoading(true);
-                categoriesListDiv.innerHTML = '<div style="padding:20px;text-align:center;color:#888;">Carregando...</div>';
-                try {
-                    if (currentMode === 'live') {
-                        if (isM3UPlaylist(currentServer.server)) {
-                            const text = await fetchWithProxy(currentServer.server, true);
-                            allLiveChannels = parseM3U(text);
-                            const groups = new Map(); allLiveChannels.forEach(ch => groups.set(ch.group, (groups.get(ch.group)||0)+1));
-                            liveCategories = Array.from(groups, ([name,count]) => ({id:name, name, count})).sort((a,b)=>a.name.localeCompare(b.name));
-                        } else {
-                            const base = `${currentServer.server}/player_api.php`, u=currentServer.username, p=currentServer.password;
-                            const catsData = await fetchWithProxy(`${base}?username=${u}&password=${p}&action=get_live_categories`);
-                            const catsMap = new Map();
-                            (Array.isArray(catsData)?catsData:Object.values(catsData||{})).forEach(c => { if(c.category_id&&c.category_name) catsMap.set(parseInt(c.category_id), c.category_name); });
-                            let streams = await fetchWithProxy(`${base}?username=${u}&password=${p}&action=get_live_streams`);
-                            if (!Array.isArray(streams)) streams = Object.values(streams||{});
-                            allLiveChannels = streams.map(s => ({ name: s.name||s.title||'Sem nome', logo: s.stream_icon||'', group: s.category_id ? (catsMap.get(parseInt(s.category_id))||'Sem categoria') : 'Geral', url: `${currentServer.server}/live/${u}/${p}/${s.stream_id}.m3u8` }));
-                            const groups = new Map(); allLiveChannels.forEach(ch => groups.set(ch.group, (groups.get(ch.group)||0)+1));
-                            liveCategories = Array.from(groups, ([name,count]) => ({id:name, name, count})).sort((a,b)=>a.name.localeCompare(b.name));
+    // ---------- Parse completo: usuário, senha, serviços e status ativo ----------
+    function parseFullAccounts(txt) {
+        const lines = txt.split(/\r?\n/);
+        const accounts = [];
+        for (let line of lines) {
+            line = line.trim();
+            if (line === "") continue;
+            const firstPipe = line.indexOf(" | ");
+            if (firstPipe === -1) continue; 
+            const credPart = line.substring(0, firstPipe);
+            const colonIdx = credPart.indexOf(":");
+            if (colonIdx === -1) continue;
+            const username = credPart.substring(0, colonIdx).trim();
+            const password = credPart.substring(colonIdx + 1).trim();
+            if (!username || !password) continue;
+            
+            // extrair serviços da parte após primeiro " | "
+            const afterCred = line.substring(firstPipe + 3);
+            const segments = afterCred.split(" | ");
+            const services = [];
+            let isActive = false; // flag de conta ativa baseada nos serviços
+            for (let seg of segments) {
+                seg = seg.trim();
+                if (seg.includes("=")) {
+                    const eqIndex = seg.indexOf("=");
+                    const serviceName = seg.substring(0, eqIndex).trim().toUpperCase();
+                    const status = seg.substring(eqIndex + 1).trim();
+                    if (status.toLowerCase().includes("ativo") || status.toLowerCase().includes("ativar")) {
+                        if (serviceName && serviceName !== "CPF") {
+                            services.push(serviceName);
+                            isActive = true;
                         }
-                        renderCategories(liveCategories);
-                        globalStatusSpan.innerText = `✅ ${allLiveChannels.length} canais`;
-                    } else if (currentMode === 'movies') {
-                        if (isM3UPlaylist(currentServer.server)) throw new Error('M3U não suporta filmes');
-                        const base = `${currentServer.server}/player_api.php`, u=currentServer.username, p=currentServer.password;
-                        const catsData = await fetchWithProxy(`${base}?username=${u}&password=${p}&action=get_vod_categories`);
-                        const catsMap = new Map();
-                        (Array.isArray(catsData)?catsData:Object.values(catsData||{})).forEach(c => { if(c.category_id&&c.category_name) catsMap.set(parseInt(c.category_id), c.category_name); });
-                        let moviesData = await fetchWithProxy(`${base}?username=${u}&password=${p}&action=get_vod_streams`);
-                        if (!Array.isArray(moviesData)) moviesData = Object.values(moviesData||{});
-                        allMovies = moviesData.map(m => ({ name: m.name||m.title||'Sem nome', logo: m.stream_icon||'', category: m.category_id ? (catsMap.get(parseInt(m.category_id))||'Sem categoria') : 'Geral', url: `${currentServer.server}/movie/${u}/${p}/${m.stream_id}.mp4` }));
-                        const groups = new Map(); allMovies.forEach(m => groups.set(m.category, (groups.get(m.category)||0)+1));
-                        movieCategories = Array.from(groups, ([name,count]) => ({id:name, name, count})).sort((a,b)=>a.name.localeCompare(b.name));
-                        renderCategories(movieCategories);
-                        globalStatusSpan.innerText = `🎬 ${allMovies.length} filmes`;
-                    } else if (currentMode === 'series') {
-                        if (isM3UPlaylist(currentServer.server)) throw new Error('M3U não suporta séries');
-                        const base = `${currentServer.server}/player_api.php`, u=currentServer.username, p=currentServer.password;
-                        const catsData = await fetchWithProxy(`${base}?username=${u}&password=${p}&action=get_series_categories`);
-                        const catsMap = new Map();
-                        (Array.isArray(catsData)?catsData:Object.values(catsData||{})).forEach(c => { if(c.category_id&&c.category_name) catsMap.set(parseInt(c.category_id), c.category_name); });
-                        let seriesData = await fetchWithProxy(`${base}?username=${u}&password=${p}&action=get_series`);
-                        if (!Array.isArray(seriesData)) seriesData = Object.values(seriesData||{});
-                        allSeriesList = seriesData.map(s => ({ name: s.name||s.title||'Sem nome', logo: s.cover||s.stream_icon||'', category: s.category_id ? (catsMap.get(parseInt(s.category_id))||'Sem categoria') : 'Geral', series_id: s.series_id }));
-                        const groups = new Map(); allSeriesList.forEach(s => groups.set(s.category, (groups.get(s.category)||0)+1));
-                        seriesCategories = Array.from(groups, ([name,count]) => ({id:name, name, count})).sort((a,b)=>a.name.localeCompare(b.name));
-                        renderCategories(seriesCategories);
-                        globalStatusSpan.innerText = `📺 ${allSeriesList.length} séries`;
                     }
-                } catch {
-                    globalStatusSpan.innerText = '🔴 Erro ao carregar';
-                    categoriesListDiv.innerHTML = '<div style="padding:20px;text-align:center;color:#ff8080;">Erro na conexão</div>';
                 }
-                setLoading(false);
             }
-            function renderCategories(cats) {
-                categoriesListDiv.innerHTML = '';
-                cats.forEach(cat => {
-                    const div = document.createElement('div'); div.className = 'category-item' + (activeCategoryId === cat.id ? ' active' : '');
-                    div.setAttribute('tabindex', '0'); div.innerHTML = `<span>${escapeHtml(cat.name)}</span><span class="cat-count">${cat.count}</span>`;
-                    div.addEventListener('click', (e) => { e.stopPropagation(); handleCategoryClick(cat.id); });
-                    div.addEventListener('keydown', (e) => { if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); div.click(); } });
-                    categoriesListDiv.appendChild(div);
-                });
-                setTimeout(() => { const firstCat = categoriesListDiv.querySelector('.category-item'); if (firstCat) firstCat.focus(); }, 100);
-            }
-            function handleCategoryClick(catId) {
-                if (activeCategoryId === catId && !subcatPanel.classList.contains('hidden')) {
-                    activeCategoryId = null; subcatPanel.classList.add('hidden');
-                    renderCategories(currentMode==='live'?liveCategories:currentMode==='movies'?movieCategories:seriesCategories);
-                    return;
-                }
-                activeCategoryId = catId;
-                renderCategories(currentMode==='live'?liveCategories:currentMode==='movies'?movieCategories:seriesCategories);
-                showCategoryItems(catId);
-                if (window.innerWidth <= 780) { sidebar.classList.remove('open'); overlay.classList.remove('active'); }
-            }
-            function showCategoryItems(catId) {
-                subchannelContainer.innerHTML = '';
-                if (currentMode === 'live') {
-                    const filtered = allLiveChannels.filter(ch => ch.group === catId);
-                    panelTitle.innerHTML = `📺 ${escapeHtml(catId)} (${filtered.length})`;
-                    filtered.forEach(ch => {
-                        const item = document.createElement('div'); item.className = 'channel-subitem'; item.setAttribute('tabindex','0');
-                        const logoHtml = ch.logo?.startsWith('http') ? `<img class="item-logo" src="${escapeHtml(ch.logo)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><div class="item-fallback" style="display:none;">📡</div>` : `<div class="item-fallback">📡</div>`;
-                        item.innerHTML = logoHtml + `<span class="item-name">${escapeHtml(ch.name)}</span>`;
-                        item.addEventListener('click', (e) => { e.stopPropagation(); playStream(ch.url, ch.name, ch.logo); closeAllMenus(); });
-                        item.addEventListener('keydown', (e) => { if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); item.click(); } });
-                        subchannelContainer.appendChild(item);
-                    });
-                } else if (currentMode === 'movies') {
-                    const filtered = allMovies.filter(m => m.category === catId);
-                    panelTitle.innerHTML = `🎬 ${escapeHtml(catId)} (${filtered.length})`;
-                    const grid = document.createElement('div'); grid.className = 'movie-grid';
-                    filtered.forEach(m => {
-                        const card = document.createElement('div'); card.className = 'movie-card'; card.setAttribute('tabindex','0');
-                        card.innerHTML = `<img src="${escapeHtml(m.logo)}" alt="" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22240%22><rect fill=%22%23333%22 width=%22160%22 height=%22240%22/><text fill=%22%23aaa%22 x=%2280%22 y=%22120%22 text-anchor=%22middle%22>🎬</text></svg>';"><div class="movie-title">${escapeHtml(m.name)}</div>`;
-                        card.addEventListener('click', (e) => { e.stopPropagation(); playStream(m.url, m.name, m.logo); closeAllMenus(); });
-                        card.addEventListener('keydown', (e) => { if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); card.click(); } });
-                        grid.appendChild(card);
-                    });
-                    subchannelContainer.appendChild(grid);
-                } else if (currentMode === 'series') {
-                    const filtered = allSeriesList.filter(s => s.category === catId);
-                    panelTitle.innerHTML = `📺 ${escapeHtml(catId)} (${filtered.length})`;
-                    filtered.forEach(s => {
-                        const item = document.createElement('div'); item.className = 'series-item'; item.setAttribute('tabindex','0');
-                        const logoHtml = s.logo?.startsWith('http') ? `<img class="item-logo" src="${escapeHtml(s.logo)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><div class="item-fallback" style="display:none;">📺</div>` : `<div class="item-fallback">📺</div>`;
-                        item.innerHTML = logoHtml + `<span class="item-name">${escapeHtml(s.name)}</span>`;
-                        item.addEventListener('click', async (e) => { e.stopPropagation(); await loadSeriesEpisodes(s.series_id, s.name, s.logo); });
-                        item.addEventListener('keydown', async (e) => { if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); await loadSeriesEpisodes(s.series_id, s.name, s.logo); } });
-                        subchannelContainer.appendChild(item);
-                    });
-                }
-                subcatPanel.classList.remove('hidden');
-                setTimeout(() => { const firstItem = subchannelContainer.querySelector('.channel-subitem, .movie-card, .series-item'); if (firstItem) firstItem.focus(); }, 100);
-            }
-            async function loadSeriesEpisodes(seriesId, seriesName, logo) {
-                setLoading(true);
-                try {
-                    const base = `${currentServer.server}/player_api.php`, u=currentServer.username, p=currentServer.password;
-                    const data = await fetchWithProxy(`${base}?username=${u}&password=${p}&action=get_series_info&series_id=${seriesId}`);
-                    currentSeriesData = { info: data, name: seriesName, logo };
-                    showSeriesSeasons();
-                } catch { alert('Erro ao carregar episódios.'); }
-                setLoading(false);
-            }
-            function showSeriesSeasons() {
-                if (!currentSeriesData) return;
-                const seasons = currentSeriesData.info.episodes ? Object.keys(currentSeriesData.info.episodes).sort((a,b)=>a-b) : [];
-                panelTitle.innerHTML = `📺 ${escapeHtml(currentSeriesData.name)} · Temporadas`;
-                subchannelContainer.innerHTML = '';
-                seasons.forEach(season => {
-                    const item = document.createElement('div'); item.className = 'series-item'; item.setAttribute('tabindex','0');
-                    item.innerHTML = `<div class="item-fallback">📂</div><span class="item-name">Temporada ${season}</span>`;
-                    item.addEventListener('click', (e) => { e.stopPropagation(); showSeasonEpisodes(season); });
-                    item.addEventListener('keydown', (e) => { if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); item.click(); } });
-                    subchannelContainer.appendChild(item);
-                });
-                subcatPanel.classList.remove('hidden');
-                setTimeout(() => { const firstSeason = subchannelContainer.querySelector('.series-item'); if (firstSeason) firstSeason.focus(); }, 100);
-            }
-            function showSeasonEpisodes(season) {
-                if (!currentSeriesData) return;
-                const episodes = currentSeriesData.info.episodes[season] || [];
-                panelTitle.innerHTML = `📺 ${escapeHtml(currentSeriesData.name)} · T${season}`;
-                subchannelContainer.innerHTML = '';
-                episodes.forEach(ep => {
-                    const item = document.createElement('div'); item.className = 'episode-item'; item.setAttribute('tabindex','0');
-                    item.innerHTML = `<div class="item-fallback">▶️</div><span class="item-name">Ep. ${ep.episode_num} - ${escapeHtml(ep.title||'Sem título')}</span>`;
-                    item.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const url = `${currentServer.server}/series/${currentServer.username}/${currentServer.password}/${ep.id}.${ep.container_extension||'mp4'}`;
-                        const fullTitle = `${currentSeriesData.name} S${season}E${ep.episode_num}`;
-                        playStream(url, fullTitle, currentSeriesData.logo);
-                        closeAllMenus();
-                    });
-                    item.addEventListener('keydown', (e) => { if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); item.click(); } });
-                    subchannelContainer.appendChild(item);
-                });
-                subcatPanel.classList.remove('hidden');
-                setTimeout(() => { const firstEp = subchannelContainer.querySelector('.episode-item'); if (firstEp) firstEp.focus(); }, 100);
-            }
-            function selectServer(srv) {
-                currentServer = srv;
-                serverScreen.style.display = 'none'; contentTypeScreen.style.display = 'flex'; mainInterface.style.display = 'none';
-                currentMode = null; activeCategoryId = null; destroyShaka(); showPlaceholder(true); setNowPlaying('Nenhum conteúdo', '● PARADO', '');
-                subcatPanel.classList.add('hidden');
-                setTimeout(() => { const firstTypeCard = contentTypeScreen.querySelector('.type-card'); if (firstTypeCard) firstTypeCard.focus(); }, 100);
-            }
-            function showServerSelection() {
-                destroyShaka(); exitFullscreen().catch(()=>{});
-                contentTypeScreen.style.display = 'none'; mainInterface.style.display = 'none'; serverScreen.style.display = 'flex';
-                currentServer = null; customServers = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]'); buildServerList();
-                customServerForm.style.display = 'none'; showPlaceholder(true); setNowPlaying('Nenhum conteúdo','● PARADO','');
-                setTimeout(() => { const firstServer = serverScroll.querySelector('.server-card'); if (firstServer) firstServer.focus(); }, 100);
-            }
-            changeServerBtn.addEventListener('click', showServerSelection);
-            menuToggle.addEventListener('click', () => {
-                if (window.innerWidth <= 780) {
-                    const open = sidebar.classList.contains('open');
-                    sidebar.classList.toggle('open', !open);
-                    overlay.classList.toggle('active', !open);
-                    if (!open) subcatPanel.classList.add('hidden');
-                }
+            // Se não houver nenhum serviço listado, consideramos como ativo por padrão (só CPF)
+            if (services.length === 0) isActive = true;
+            const uniqueServices = [...new Set(services)];
+            accounts.push({ user: username, pass: password, services: uniqueServices, isActive });
+        }
+        return accounts;
+    }
+
+    const accountsDB = parseFullAccounts(rawText);
+    console.log("Total contas:", accountsDB.length);
+    
+    // DOM
+    const totalBadge = document.getElementById("totalCountBadge");
+    totalBadge.innerText = `📋 ${accountsDB.length}`;
+    
+    const searchInput = document.getElementById("searchInput");
+    const searchBtn = document.getElementById("searchBtn");
+    const randomBtn = document.getElementById("randomBtn");
+    const dynamicResults = document.getElementById("dynamicResults");
+    const emptyMessageDiv = document.getElementById("emptyMessage");
+    
+    // Toast
+    function showToast(msg, isError = false) {
+        let toast = document.querySelector(".toast-msg");
+        if (toast) toast.remove();
+        const div = document.createElement("div");
+        div.className = "toast-msg";
+        div.style.backgroundColor = isError ? "#dc2626dd" : "#1f9a6ed9";
+        div.style.color = "white";
+        div.innerText = msg;
+        document.body.appendChild(div);
+        setTimeout(() => {
+            div.style.opacity = "0";
+            setTimeout(() => div.remove(), 1700);
+        }, 1700);
+    }
+    
+    async function copyText(text, successMsg) {
+        if (!text) return showToast("Nada para copiar", true);
+        try {
+            await navigator.clipboard.writeText(text);
+            showToast(successMsg);
+        } catch(e) {
+            showToast("Erro ao copiar", true);
+        }
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return "";
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === "&") return "&amp;";
+            if (m === "<") return "&lt;";
+            if (m === ">") return "&gt;";
+            return m;
+        });
+    }
+    
+    function renderAccounts(accountsArray) {
+        if (!accountsArray.length) {
+            emptyMessageDiv.style.display = "block";
+            dynamicResults.innerHTML = "";
+            return;
+        }
+        emptyMessageDiv.style.display = "none";
+        dynamicResults.innerHTML = accountsArray.map(acc => `
+            <div class="account-card">
+                <div class="account-header">
+                    <div class="user-status">
+                        <div class="account-user">👤 ${escapeHtml(acc.user)}</div>
+                        <span class="status-badge">
+                            <span class="status-dot ${acc.isActive ? 'green' : 'red'}"></span>
+                            ${acc.isActive ? 'ATIVO' : 'OFFLINE'}
+                        </span>
+                    </div>
+                    <div class="button-group">
+                        <button class="icon-btn copy-user" data-user="${acc.user.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')}">📋 Copiar user</button>
+                        <button class="icon-btn copy-pass" data-pass="${acc.pass.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')}">🔑 Copiar senha</button>
+                    </div>
+                </div>
+                <div class="services-container">
+                    ${acc.services.length ? acc.services.map(s => `<span class="service-badge">${escapeHtml(s)}</span>`).join('') : '<span style="color:#6b7f9f; font-size:0.7rem;">📡 Nenhum serviço extra listado</span>'}
+                </div>
+                <div style="margin-top: 10px; font-size:0.7rem; color:#5f7ea0;">🔒 senha: <span class="pass-hidden">${escapeHtml(acc.pass)}</span></div>
+            </div>
+        `).join('');
+        
+        document.querySelectorAll(".copy-user").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                const user = btn.getAttribute("data-user");
+                copyText(user, "👤 Usuário copiado!");
             });
-            overlay.addEventListener('click', closeAllMenus);
-            window.addEventListener('resize', () => { if (window.innerWidth > 780) { sidebar.classList.remove('open'); overlay.classList.remove('active'); } });
-            document.addEventListener('click', (e) => {
-                if (!subcatPanel.contains(e.target) && !e.target.closest('.category-item') && !e.target.closest('.menu-toggle') && !e.target.closest('.sidebar')) {
-                    subcatPanel.classList.add('hidden');
-                }
+        });
+        document.querySelectorAll(".copy-pass").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                const pass = btn.getAttribute("data-pass");
+                copyText(pass, "🔑 Senha copiada!");
             });
-            function init() {
-                customServers = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-                if (customServers.length === 0) {
-                    customServers.push({ name: DEFAULT_SERVER_NAME, server: DEFAULT_SERVER_URL, username: '', password: '', proxy: '' });
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(customServers));
-                }
-                buildServerList();
-                serverScreen.style.display = 'flex'; contentTypeScreen.style.display = 'none'; mainInterface.style.display = 'none';
-                updateMuteIcon(); showPlaceholder(true); updateBigPlayBtn();
-                initMediaSession();
-                setTimeout(() => { const firstServer = serverScroll.querySelector('.server-card'); if (firstServer) firstServer.focus(); }, 200);
-            }
-            init();
-        })();
-    </script>
+        });
+    }
+    
+    function searchAccounts(query) {
+        if (!query.trim()) return [];
+        const lowerQuery = query.trim().toLowerCase();
+        return accountsDB.filter(acc => acc.user.toLowerCase().includes(lowerQuery));
+    }
+    
+    function getRandomAccount() {
+        if (accountsDB.length === 0) return null;
+        const randIdx = Math.floor(Math.random() * accountsDB.length);
+        return accountsDB[randIdx];
+    }
+    
+    searchBtn.addEventListener("click", () => {
+        const query = searchInput.value;
+        const results = searchAccounts(query);
+        if (results.length === 0) {
+            emptyMessageDiv.style.display = "block";
+            dynamicResults.innerHTML = "";
+            showToast("Nenhuma conta encontrada", true);
+        } else {
+            renderAccounts(results);
+        }
+    });
+    
+    randomBtn.addEventListener("click", () => {
+        const randAcc = getRandomAccount();
+        if (randAcc) {
+            renderAccounts([randAcc]);
+            searchInput.value = "";
+        } else {
+            showToast("Erro ao sortear", true);
+        }
+    });
+    
+    const initialRand = getRandomAccount();
+    if (initialRand) renderAccounts([initialRand]);
+    else emptyMessageDiv.style.display = "block";
+</script>
 </body>
 </html>
